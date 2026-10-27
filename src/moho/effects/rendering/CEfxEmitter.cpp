@@ -971,7 +971,7 @@ namespace moho
       float emitY = worldY;
       if (p[EFFECT_SNAPTOWATERLINE] > 0.0f) {
         STIMap* const map = mManager->GetSim()->mMapData;
-        const float waterElevation = map->mWaterEnabled ? map->mWaterElevation : -10000.0f;
+        const float waterElevation = map->GetWaterElevationAt(worldX, worldZ);
         if (efx_ParticleWaterSurface <= mParams.start_[EFFECT_SORTORDER]) {
           const float above = waterElevation + efx_WaterOffset;
           emitY = (above > worldY) ? above : worldY;
@@ -985,7 +985,7 @@ namespace moho
       if (mParams.start_[EFFECT_ONLYEMITONWATER] > 0.0f) {
         STIMap* const map = mManager->GetSim()->mMapData;
         const float elevation = map->GetHeightField()->GetElevation(worldX, worldZ);
-        const float waterElevation = map->mWaterEnabled ? map->mWaterElevation : -10000.0f;
+        const float waterElevation = map->GetWaterElevationAt(worldX, worldZ);
         if (elevation > waterElevation) {
           skipEmission = true;
         } else {

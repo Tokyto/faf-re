@@ -295,6 +295,9 @@ namespace moho
     device->SelectTechnique("TWater");
 
     ApplyWater2CameraMatrices(*camera);
+    // Surface rendering must also be correct if the alpha-mask pass was
+    // skipped, or another map/pass changed shared shader state in between.
+    BindTextureShaderVar(GetWater2UtilityTextureCShaderVar(), mTerrainRes->GetWaterMap());
 
     const float viewPosition[3] = {
       camera->inverseView.r[3].x,

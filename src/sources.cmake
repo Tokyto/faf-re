@@ -265,6 +265,8 @@ set(FAF_ENGINE_SOURCES
   moho/terrain/water/HighFidelityWater.cpp
   moho/terrain/water/LowFidelityWater.cpp
   moho/terrain/water/WaterFactory.cpp
+  moho/sim/RegionalWater.cpp
+  moho/sim/RegionalWaterMap.cpp
   moho/terrain/water/WaterShaderVars.cpp
   moho/terrain/water/WaveSystem.cpp
   moho/terrain/water/Shoreline.cpp

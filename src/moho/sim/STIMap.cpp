@@ -1,4 +1,5 @@
 #include "STIMap.h"
+#include "moho/sim/RegionalWater.h"
 
 #include <algorithm>
 #include <atomic>
@@ -2455,6 +2456,8 @@ namespace moho
       std::copy_n(sourceField->data, sampleCount, copiedField->data);
     }
 
+    SetExperimentalWaterRegions(this, GetExperimentalWaterRegions(src));
+
     std::memset(mBlocking, 0, sizeof(mBlocking));
   }
 
@@ -2466,6 +2469,7 @@ namespace moho
    */
   STIMap::~STIMap()
   {
+    ForgetExperimentalWaterRegion(this);
     delete[] mTerrainType.data;
     mTerrainType.data = nullptr;
     DestroyTerrainTypes(mTerrainTypes);
@@ -2650,7 +2654,7 @@ namespace moho
       return static_cast<EOccupancyCaps>(0u);
     }
 
-    const float waterElevation = (mWaterEnabled != 0u) ? mWaterElevation : kNoWaterElevation;
+    const float waterElevation = GetWaterElevationAt(static_cast<float>(x) + 0.5f, static_cast<float>(z) + 0.5f);
     const std::size_t row0 = static_cast<std::size_t>(z) * static_cast<std::size_t>(field->width);
     const std::size_t row1 = static_cast<std::size_t>(z + 1u) * static_cast<std::size_t>(field->width);
 
@@ -2866,6 +2870,10 @@ namespace moho
     if (mWaterEnabled != 0u && mWaterElevation > out.Max.y) {
       out.Max.y = mWaterElevation;
     }
+    if (mWaterEnabled != 0u) {
+      const auto regions = GetExperimentalWaterRegions(this);
+      for (std::size_t i = 0; i < regions.count; ++i) out.Max.y = std::max(out.Max.y, regions.values[i].height);
+    }
     return out;
   }
 
@@ -2886,6 +2894,39 @@ namespace moho
     CHeightField* const field = mHeightField.get();
     if (!field) {
       return Wm3::Vec3f::NaN();
+    }
+
+    if (mWaterEnabled != 0u && GetExperimentalWaterRegions(this).Enabled()) {
+      if (line.closest > -std::numeric_limits<float>::max()) {
+        const auto start = PointOnLine(line, line.closest);
+        if (GetWaterElevationAt(start.x, start.z) > start.y) {
+          if (res) { res->distance = line.closest; res->hitKind = 3; }
+          return start;
+        }
+      }
+      CColHitResult bestResult{};
+      auto best = IntersectHeightFieldAndMarkTerrainHit(*field, line, &bestResult);
+      float bestDistance = Wm3::Vec3f::IsntNaN(best) ? bestResult.distance : std::numeric_limits<float>::max();
+      const auto regions = GetExperimentalWaterRegions(this);
+      const regionalwater::Rect mapBounds{0,0,static_cast<float>(field->width-1),static_cast<float>(field->height-1)};
+      const auto consider = [&](float height) {
+        VecDist plane{};
+        plane.dir.y = 1.0f;
+        plane.dist = height;
+        CColHitResult hit{};
+        const auto point = PlaneIntersection(line, plane, static_cast<CGeomHitResult*>(&hit));
+        if (Wm3::Vec3f::IsntNaN(point) && mapBounds.Contains(point.x,point.z) &&
+            regionalwater::HeightAt(regions,mWaterElevation,point.x,point.z)==height && hit.distance <= bestDistance) {
+          hit.hitKind = 3;
+          best = point;
+          bestResult = hit;
+          bestDistance = hit.distance;
+        }
+      };
+      for(std::size_t i=0;i<regions.count;++i)consider(regions.values[i].height);
+      consider(mWaterElevation);
+      if (res && Wm3::Vec3f::IsntNaN(best)) *res = bestResult;
+      return best;
     }
 
     if (mWaterEnabled == 0u) {
@@ -2956,7 +2997,7 @@ namespace moho
   bool STIMap::AboveWater(const Wm3::Vec3f& position) const
   {
     const float terrainElevation = mHeightField->GetElevation(position.x, position.z);
-    const float waterElevation = (mWaterEnabled != 0u) ? mWaterElevation : kNoWaterElevation;
+    const float waterElevation = GetWaterElevationAt(position.x, position.z);
     return terrainElevation > waterElevation;
   }
 
@@ -3036,7 +3077,8 @@ namespace moho
       return terrainElevation;
     }
 
-    return mWaterElevation > terrainElevation ? mWaterElevation : terrainElevation;
+    const float localWater = GetWaterElevationAt(x, z);
+    return localWater > terrainElevation ? localWater : terrainElevation;
   }
 
   /**
@@ -3076,7 +3118,8 @@ namespace moho
         return terrainElevation;
       }
 
-      return (mWaterElevation > terrainElevation) ? mWaterElevation : terrainElevation;
+      const float localWater = GetWaterElevationAt(position.x, position.z);
+      return (localWater > terrainElevation) ? localWater : terrainElevation;
     }
 
     // 0x0062D68D..0x0062D6DB: the smaller extent is picked with an unsigned
@@ -3107,7 +3150,7 @@ namespace moho
       return terrainTierMax;
     }
 
-    const float waterElevation = (mWaterEnabled != 0u) ? mWaterElevation : kNoWaterElevation;
+    const float waterElevation = GetWaterElevationAt(position.x, position.z);
     return (waterElevation > terrainTierMax) ? waterElevation : terrainTierMax;
   }
 
@@ -3139,7 +3182,7 @@ namespace moho
       return static_cast<EOccupancyCaps>(0u);
     }
 
-    const float waterElevation = map.mWaterEnabled != 0u ? map.mWaterElevation : kNoWaterElevation;
+    const float waterElevation = map.GetWaterElevationAt(static_cast<float>(x0 + x1) * 0.5f, static_cast<float>(z0 + z1) * 0.5f);
 
     std::uint32_t maxHeight = 0u;
     std::uint32_t minHeight = std::numeric_limits<std::uint32_t>::max();
@@ -3373,8 +3416,9 @@ namespace moho
       static_cast<std::size_t>(clampedX) + (static_cast<std::size_t>(clampedZ) * static_cast<std::size_t>(field->width));
 
     float terrainElevation = static_cast<float>(field->data[sampleIndex]) * kHeightWordScale;
-    if (mWaterEnabled != 0u && mWaterElevation > terrainElevation) {
-      terrainElevation = mWaterElevation;
+    const float localWater = GetWaterElevationAt(static_cast<float>(clampedX), static_cast<float>(clampedZ));
+    if (mWaterEnabled != 0u && localWater > terrainElevation) {
+      terrainElevation = localWater;
     }
     return terrainElevation;
   }
@@ -3387,6 +3431,12 @@ namespace moho
   float STIMap::GetWaterElevation() const noexcept
   {
     return mWaterElevation;
+  }
+
+  float STIMap::GetWaterElevationAt(const float x, const float z) const
+  {
+    if (mWaterEnabled == 0u) return kNoWaterElevation;
+    return regionalwater::HeightAt(GetExperimentalWaterRegionsCached(this), mWaterElevation, x, z);
   }
 
   /**
@@ -3678,7 +3728,7 @@ namespace moho
       layerCaps &= ~(static_cast<std::int32_t>(LAYER_Land) | static_cast<std::int32_t>(LAYER_Seabed));
     }
 
-    const float effectiveWaterElevation = map.mWaterEnabled != 0u ? map.mWaterElevation : -10000.0f;
+    const float effectiveWaterElevation = map.GetWaterElevationAt(worldPos.x, worldPos.z);
     if (effectiveWaterElevation > skirtMinHeight) {
       layerCaps &= ~static_cast<std::int32_t>(LAYER_Land);
     }

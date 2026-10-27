@@ -29045,7 +29045,8 @@ namespace moho
     const gpg::Rect2f skirt = blueprint->GetSkirtRect(groundPosition);
 
     const STIMap* const map = session->GetSTIMap();
-    const float waterElevation = map->mWaterEnabled != 0 ? map->mWaterElevation : kNoWaterElevation;
+    const float waterElevation = map->mWaterEnabled != 0
+      ? map->GetWaterElevationAt(position.x, position.z) : kNoWaterElevation;
 
     float skirtY = position.y;
     if (heightField != nullptr) {

@@ -13645,15 +13645,15 @@ bool Unit::PickTargetPointAboveWater(std::int32_t& outTargetPoint) const
   outTargetPoint = -1;
 
   const STIMap* const mapData = SimulationRef->mMapData;
-  const float waterElevation = (mapData->mWaterEnabled != 0u) ? mapData->mWaterElevation : -10000.0f;
-
   const RUnitBlueprint* const blueprint = GetBlueprint();
   const msvc8::vector<msvc8::string>& targetBones = blueprint->AI.TargetBones;
   const std::int32_t targetBoneCount = static_cast<std::int32_t>(targetBones.size());
   if (targetBoneCount > 0) {
     msvc8::vector<std::int32_t> candidateIndices{};
     for (std::int32_t targetIndex = 0; targetIndex < targetBoneCount; ++targetIndex) {
-      if (GetTargetPoint(targetIndex).y > waterElevation) {
+      const Wm3::Vector3f point = GetTargetPoint(targetIndex);
+      const float waterElevation = mapData->GetWaterElevationAt(point.x, point.z);
+      if (point.y > waterElevation) {
         candidateIndices.push_back(targetIndex);
       }
     }
@@ -13668,7 +13668,8 @@ bool Unit::PickTargetPointAboveWater(std::int32_t& outTargetPoint) const
     return false;
   }
 
-  return GetPosition().y > waterElevation;
+  const Wm3::Vector3f position = GetPosition();
+  return position.y > mapData->GetWaterElevationAt(position.x, position.z);
 }
 
 /**
@@ -13683,15 +13684,15 @@ bool Unit::PickTargetPointBelowWater(std::int32_t& outTargetPoint) const
   outTargetPoint = -1;
 
   const STIMap* const mapData = SimulationRef->mMapData;
-  const float waterElevation = (mapData->mWaterEnabled != 0u) ? mapData->mWaterElevation : -10000.0f;
-
   const RUnitBlueprint* const blueprint = GetBlueprint();
   const msvc8::vector<msvc8::string>& targetBones = blueprint->AI.TargetBones;
   const std::int32_t targetBoneCount = static_cast<std::int32_t>(targetBones.size());
   if (targetBoneCount > 0) {
     msvc8::vector<std::int32_t> candidateIndices{};
     for (std::int32_t targetIndex = 0; targetIndex < targetBoneCount; ++targetIndex) {
-      if (GetTargetPoint(targetIndex).y < waterElevation) {
+      const Wm3::Vector3f point = GetTargetPoint(targetIndex);
+      const float waterElevation = mapData->GetWaterElevationAt(point.x, point.z);
+      if (point.y < waterElevation) {
         candidateIndices.push_back(targetIndex);
       }
     }
@@ -13707,7 +13708,8 @@ bool Unit::PickTargetPointBelowWater(std::int32_t& outTargetPoint) const
   }
 
   // 0x006AB31D: `comiss water, pos.y` / `ja` -- strictly below the surface.
-  return GetPosition().y < waterElevation;
+  const Wm3::Vector3f position = GetPosition();
+  return position.y < mapData->GetWaterElevationAt(position.x, position.z);
 }
 
 /**
@@ -15572,7 +15574,8 @@ bool Unit::PrepareMove(
       const STIMap* const mapData = sim->mMapData;
       const CHeightField* const heightField = (mapData != nullptr && mapData->mHeightField) ? mapData->mHeightField.get() : nullptr;
       const float terrainElevation = (heightField != nullptr) ? heightField->GetElevation(inOutPos->x, inOutPos->z) : inOutPos->y;
-      const float waterElevation = (mapData != nullptr && mapData->mWaterEnabled != 0u) ? mapData->mWaterElevation : -10000.0f;
+      const float waterElevation = (mapData != nullptr && mapData->mWaterEnabled != 0u)
+        ? mapData->GetWaterElevationAt(inOutPos->x, inOutPos->z) : -10000.0f;
       if (waterElevation > terrainElevation) {
         const std::uint8_t withWaterCaps = static_cast<std::uint8_t>(
           static_cast<std::uint8_t>(footprint.mOccupancyCaps) | static_cast<std::uint8_t>(EOccupancyCaps::OC_WATER)

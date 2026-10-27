@@ -241,7 +241,10 @@ namespace moho
     BindTextureShaderVar(GetWater2NormalMap3ShaderVar(), shaderProperties->GetNormalMap(3));
 
     IWldTerrainRes* const terrainRes = mTerrainRes;
-    BindTextureShaderVar(GetWater2FresnelLookupShaderVar(), terrainRes->GetWaterMap());
+    // Bind this map's depth/land mask on every surface draw. water2 uses
+    // UtilityTextureC here; FresnelLookup left the previous map's mask bound.
+    // Low/medium has no alpha-mask pass to refresh it on our behalf.
+    BindTextureShaderVar(GetWater2UtilityTextureCShaderVar(), terrainRes->GetWaterMap());
 
     std::int32_t primitiveType = 4;
     return device->DrawIndexedSheetPrimitive(mVertexSheet, mIndexSheet, &primitiveType);

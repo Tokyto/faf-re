@@ -109,7 +109,9 @@ float moho::rule_BlueprintReloadDelay = 0.0f;
 // willing to run, so raising it issues beats earlier; the debug level gates
 // the thread's running/waiting/exiting trace.
 int moho::sim_IssueThreadDebugLevel = 0;
-float moho::net_Lag = 0.0f;
+// Upstream 92e5465c461f: the shipped default is 500 ms. Zero removes the
+// command lead and makes a network game wait on each next simulation beat.
+float moho::net_Lag = 500.0f;
 
 // AI economy tuning convars referenced by `moho::CEconomy::Reset`. The
 // console-startup registration (FUN_00BC8DC0 / FUN_00BC8DE0 family) wires

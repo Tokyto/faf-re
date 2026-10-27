@@ -677,9 +677,11 @@ const RUnitBlueprint* CAiBuilderImpl::BuilderGetNextRebuildStructure(SOCellPos& 
     float centerY = 0.0f;
     if (heightField) {
       centerY = heightField->GetElevation(centerX, centerZ);
-      if (!HasSeabedOccupancy(blueprint->mFootprint) && mapData && mapData->mWaterEnabled != 0 &&
-          mapData->mWaterElevation > centerY) {
-        centerY = mapData->mWaterElevation;
+      if (!HasSeabedOccupancy(blueprint->mFootprint) && mapData && mapData->mWaterEnabled != 0) {
+        const float waterElevation = mapData->GetWaterElevationAt(centerX, centerZ);
+        if (waterElevation > centerY) {
+          centerY = waterElevation;
+        }
       }
     }
 

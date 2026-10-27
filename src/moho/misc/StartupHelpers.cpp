@@ -816,6 +816,22 @@ namespace
     gpg::Logf("engine hooks: %s mounted at /fafengine", folderUtf8.c_str());
   }
 
+  // Opt-in local test maps alongside the isolated executable. No changes to
+  // FAF's init script, user map folders, or the ordinary launch path.
+  void AppendRegionalWaterTestMaps(msvc8::vector<moho::SVFSMountPoint>& mountPoints)
+  {
+    if (!moho::CFG_GetArgOption("/regionalwatertestmaps", 0u, nullptr)) return;
+    std::array<wchar_t, MAX_PATH> modulePath{};
+    const DWORD length = ::GetModuleFileNameW(nullptr, modulePath.data(), static_cast<DWORD>(modulePath.size()));
+    if (length == 0U || length >= modulePath.size()) return;
+    const auto folder = std::filesystem::path(modulePath.data()).parent_path() / L"Maps";
+    std::error_code error;
+    if (!std::filesystem::is_directory(folder, error)) return;
+    const auto folderUtf8 = gpg::STR_WideToUtf8(folder.wstring().c_str());
+    mountPoints.push_back(moho::SVFSMountPoint(folderUtf8.c_str(), "/maps"));
+    gpg::Logf("[RegionalWaterMap v0.4] isolated maps: %s mounted at /maps", folderUtf8.c_str());
+  }
+
   [[nodiscard]] LuaPlus::LuaObject ImportLuaModule(LuaPlus::LuaState* const state, const char* const modulePath)
   {
     if (state == nullptr || modulePath == nullptr || modulePath[0] == '\0') {
@@ -5826,6 +5842,7 @@ bool moho::DISK_SetupDataAndSearchPaths(msvc8::string dataPathScriptName, const 
     mountPoints = CollectMountPointsFromLua(startupState);
     ApplyHookDirectoriesFromLua(startupState);
     AppendEngineHookFolder(mountPoints);
+    AppendRegionalWaterTestMaps(mountPoints);
   }
 
   {

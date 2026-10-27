@@ -499,8 +499,9 @@ namespace moho
       const CHeightField* const heightField = map.GetHeightField();
       float sampledElevation = heightField ? heightField->GetElevation(samplePoint.x, samplePoint.z) : samplePoint.y;
 
-      if (includeWaterFloor && map.mWaterEnabled != 0u && map.mWaterElevation > sampledElevation) {
-        sampledElevation = map.mWaterElevation;
+      const float localWater = map.GetWaterElevationAt(samplePoint.x, samplePoint.z);
+      if (includeWaterFloor && map.mWaterEnabled != 0u && localWater > sampledElevation) {
+        sampledElevation = localWater;
       }
 
       if (unit != nullptr) {
@@ -858,8 +859,9 @@ namespace moho
 
     const STIMap* const map = mUnit->SimulationRef->mMapData;
     float surfaceElevation = map->mHeightField.get()->GetElevation(mPos.x, mPos.z);
-    if (map->mWaterEnabled != 0 && map->mWaterElevation > surfaceElevation) {
-      surfaceElevation = map->mWaterElevation;
+    const float localWater = map->GetWaterElevationAt(mPos.x, mPos.z);
+    if (map->mWaterEnabled != 0 && localWater > surfaceElevation) {
+      surfaceElevation = localWater;
     }
     mTargetElevation = surfaceElevation;
 
@@ -1092,8 +1094,9 @@ namespace moho
       targetElevation = heightField->GetElevation(targetPosition.x, targetPosition.z);
     }
 
-    if (mapData->mWaterEnabled != 0u && mapData->mWaterElevation > targetElevation) {
-      targetElevation = mapData->mWaterElevation;
+    const float localWater = mapData->GetWaterElevationAt(targetPosition.x, targetPosition.z);
+    if (mapData->mWaterEnabled != 0u && localWater > targetElevation) {
+      targetElevation = localWater;
     }
 
     mTargetElevation = targetElevation;
@@ -2113,7 +2116,7 @@ namespace moho
     }
 
     const bool waterEnabled = mapData->mWaterEnabled != 0;
-    const float waterElevation = waterEnabled ? mapData->mWaterElevation : kNoWaterElevation;
+    const float waterElevation = waterEnabled ? mapData->GetWaterElevationAt(currentPos.x, currentPos.z) : kNoWaterElevation;
     const float groundElevationAtCurrentPos = mapData->GetHeightField()->GetElevation(currentPos.x, currentPos.z);
 
     const ELayer oldLayer = unit->mVarDat.mLayerMask;
@@ -2428,7 +2431,7 @@ namespace moho
     SPhysBody* const physBody = unit->GetPhysBody();
 
     const bool waterEnabled = mapData->mWaterEnabled != 0;
-    const float waterFloor = waterEnabled ? mapData->mWaterElevation : kNoWaterElevation;
+    const float waterFloor = waterEnabled ? mapData->GetWaterElevationAt(unit->GetPosition().x, unit->GetPosition().z) : kNoWaterElevation;
 
     gpg::fastvector_n<Wm3::Sphere3f, 8> collisionSpheres;
     unit->GetTerrainCollisionGeom(collisionSpheres);
@@ -2529,7 +2532,7 @@ namespace moho
     const Wm3::Vector3f unitPosition = mUnit->GetPosition();
     const float terrainElevation =
       heightField ? heightField->GetElevation(unitPosition.x, unitPosition.z) : unitPosition.y;
-    const float waterElevation = (mapData && mapData->mWaterEnabled != 0u) ? mapData->mWaterElevation : kNoWaterElevation;
+    const float waterElevation = (mapData && mapData->mWaterEnabled != 0u) ? mapData->GetWaterElevationAt(unitPosition.x, unitPosition.z) : kNoWaterElevation;
 
     float surfaceDepthLimit = (terrainElevation + kSurfaceClearance) - waterElevation;
     if (surfaceDepthLimit > 0.0f) {
@@ -2604,7 +2607,7 @@ namespace moho
 
     // Maps without water are modelled as having their surface infinitely far
     // below, so nothing ever counts as submerged.
-    float waterSurface = mapData->mWaterEnabled ? mapData->mWaterElevation : kNoWaterSurfaceElevation;
+    float waterSurface = mapData->mWaterEnabled ? mapData->GetWaterElevationAt(currentTransform.pos_.x, currentTransform.pos_.z) : kNoWaterSurfaceElevation;
 
     // Land-capable footprints sit on top of shallow water rather than in it,
     // so their effective surface is raised by the blueprint's layer-change
@@ -3887,8 +3890,9 @@ namespace moho
     // water, so `(mCurElevation - mNewElevation) < 0.1f` never holds and a
     // flier never settles there.
     float sampleElevation = mapData->GetHeightField()->GetElevation(outTransform.pos_.x, outTransform.pos_.z);
-    if (air.FlyInWater == 0u && mapData->mWaterEnabled != 0u && mapData->mWaterElevation > sampleElevation) {
-      sampleElevation = mapData->mWaterElevation;
+    const float localWater = mapData->GetWaterElevationAt(outTransform.pos_.x, outTransform.pos_.z);
+    if (air.FlyInWater == 0u && mapData->mWaterEnabled != 0u && localWater > sampleElevation) {
+      sampleElevation = localWater;
     }
 
     Wm3::Vector3f desiredVelocity{
@@ -3934,7 +3938,7 @@ namespace moho
 
                 enteredLandingPhase = true;
                 const float landElevation = mapData->GetHeightField()->GetElevation(mTargetPosition.x, mTargetPosition.z);
-                const float waterElevation = (mapData->mWaterEnabled != 0u) ? mapData->mWaterElevation : -10000.0f;
+                const float waterElevation = mapData->GetWaterElevationAt(mTargetPosition.x, mTargetPosition.z);
                 mLayer = (landElevation <= waterElevation) ? LAYER_Water : LAYER_Land;
               } else {
                 mPreparationTick = static_cast<std::int32_t>(curTick);
@@ -4578,7 +4582,7 @@ namespace moho
       footprintElevation += raisedPlatformUnit->DistanceToOccupiedRect(&snapped.pos_);
     }
 
-    float waterElevation = (mapData->mWaterEnabled != 0u) ? mapData->mWaterElevation : kNoWaterElevation;
+    float waterElevation = mapData->GetWaterElevationAt(snapped.pos_.x, snapped.pos_.z);
     if (footprintElevation > terrainElevation) {
       waterElevation += footprintElevation - terrainElevation;
     }

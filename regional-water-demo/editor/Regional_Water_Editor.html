@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Regional Water — water editor</title>
+<style>
+:root{color-scheme:dark;--bg:#0c131a;--panel:#121e27;--line:#283844;--text:#e2eaf0;--muted:#96aab9;--accent:#6fe0c8;--amber:#f1be72;--red:#ff8c8c;--radius:12px;font-family:Segoe UI,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}button,input,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:#1a2a35;color:var(--text);border-radius:8px;padding:9px 13px;transition:background .15s,border-color .15s}button:hover:not(:disabled){background:#233c48;border-color:#557786}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button:disabled{opacity:.4;cursor:default}button.primary{background:var(--accent);color:#09241d;border-color:var(--accent);font-weight:650}button.primary:hover:not(:disabled){background:#a1efdf;border-color:#a1efdf}button.subtle{background:transparent}button.small{padding:6px 10px;font-size:12px}button.icon{padding:6px 10px;font-size:18px;line-height:1.2}button.danger{color:#ffa3a3;background:transparent}button.active{border-color:var(--accent);background:#214239;color:#b6f7e9}button svg{width:17px;height:17px;vertical-align:-3px;margin-right:6px}label{color:var(--muted)}input,select{width:100%;color:var(--text);background:#0b161e;border:1px solid #344b59;border-radius:7px;padding:8px 10px}input:invalid{border-color:var(--red)}input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;margin:0 6px 0 0;vertical-align:-2px}input[type=file]{display:none}p{margin:8px 0}.muted{color:var(--muted)}.tiny{font-size:12px}.mono{font-family:Consolas,ui-monospace,monospace}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.hidden,[hidden]{display:none!important}
+.shell{max-width:1800px;margin:auto;padding:20px 24px 16px}.masthead{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}.brand{display:flex;gap:13px;align-items:center}.brandmark{display:grid;place-items:center;width:43px;height:43px;border:1px solid #397060;border-radius:12px;background:#16322d;color:var(--accent)}.brandmark svg{width:28px;height:28px}.brand h1{margin:0;font-size:20px;letter-spacing:.2px;font-weight:650}.brand p{margin:0;color:var(--muted);font-size:12px}.headright{display:flex;align-items:center;gap:12px}.offline{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent);display:flex;align-items:center;gap:6px}.offline::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%}.toolbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.toolbar .spacer{flex:1}.savearea{display:flex;gap:12px;align-items:center}.savearea span{max-width:280px;text-align:right;overflow-wrap:anywhere}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}.mapcard{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#101b23}.mapmeta{min-height:61px;padding:12px 17px;border-bottom:1px solid var(--line);display:flex;gap:18px;justify-content:space-between;align-items:center}.maptitle{font-size:14px;font-weight:600;overflow-wrap:anywhere}.mapfacts{font-size:12px;color:var(--muted);margin-top:3px}.demo-tag{display:inline-block;color:var(--amber);font-weight:500;margin-left:8px;font-size:11px}.maptools{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}.toolgroup{display:flex;gap:5px;align-items:center}.toolgroup button{font-size:12px;padding:7px 10px}.zoomlabel{color:var(--muted);font-size:11px;min-width:37px;text-align:center;font-variant-numeric:tabular-nums}.canvaswrap{height:clamp(360px,calc(100vh - 390px),860px);min-height:360px;position:relative;background:#091219;overflow:hidden;isolation:isolate;touch-action:none}.canvaswrap.dragover{outline:3px solid var(--accent);outline-offset:-3px}canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}.empty{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px;pointer-events:none;background:radial-gradient(ellipse at center,#182e36a0,transparent 65%)}.empty>*{max-width:420px}.empty svg{width:78px;height:78px;color:#62bba9;opacity:.85;margin-bottom:16px}.empty h2{font-size:23px;line-height:1.25;margin:0 0 12px;letter-spacing:-.4px}.empty p{color:var(--muted);margin:0 0 20px}.empty button{pointer-events:auto}.empty .actions{display:flex;gap:8px}.options{display:flex;gap:16px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}.options label{font-size:12px;cursor:pointer}.coords{font-family:Consolas,ui-monospace,monospace;font-size:11px;color:var(--muted);padding:8px 14px;border-top:1px solid #20303a;min-height:32px;font-variant-numeric:tabular-nums}.maphint{color:var(--muted);font-size:12px;padding:10px 2px 0;display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.side{display:flex;flex-direction:column;gap:12px}.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px}.card h2{font-size:13px;margin:0 0 12px;font-weight:650;display:flex;justify-content:space-between;align-items:center}.count{font-size:11px;font-weight:400;color:var(--muted);background:#22333d;padding:2px 7px;border-radius:5px}.regionlist{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}.regionrow{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:9px 10px;background:#152530}.regionrow.selected{background:#223b42;border-color:var(--color)}.dot{width:9px;height:28px;border-radius:3px;background:var(--color);flex-shrink:0}.regionname{flex:1;font-size:13px}.regionname small{display:block;color:var(--muted);font-size:10px}.regionheight{font-family:Consolas,ui-monospace,monospace;font-size:16px}.rowflag{font-size:12px;color:var(--amber)}.listempty{font-size:12px;color:var(--muted);margin:0 0 5px}.inspectorheader{display:flex;justify-content:space-between;align-items:center}.inspectorheader h2{margin-bottom:10px}.heightlabel{display:block;font-size:12px;margin-bottom:5px}.heightcontrol{display:grid;grid-template-columns:33px 1fr 33px;gap:6px}.heightcontrol input{font-size:23px;padding:7px;text-align:center;color:var(--accent);font-family:Consolas,ui-monospace,monospace;font-variant-numeric:tabular-nums}.heightcontrol button{padding:4px;font-size:22px}.seadiff{font-size:11px;text-align:center;color:var(--muted);margin:5px 0 13px}.bounds{display:grid;grid-template-columns:1fr 1fr;gap:9px}.bounds label{font-size:11px}.bounds input{display:block;margin-top:3px;font-family:Consolas,ui-monospace,monospace;font-size:13px;padding:7px 9px}.dimensions{font-size:11px;color:var(--muted);margin:7px 0 0}.advanced{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;font-size:12px}.advanced summary{color:var(--muted);cursor:pointer}.advanced label{display:block;margin:10px 0 4px}.advanced select{font-size:12px;padding:7px}.gentlenote{color:var(--amber);font-size:11px;margin-top:8px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px;border-top:1px solid var(--line);padding-top:11px}.stat span{display:block;color:var(--muted);font-size:10px}.stat strong{font-family:Consolas,ui-monospace,monospace;font-size:14px;font-weight:500}.stat.wide{grid-column:1/-1}.statusline{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}.statusdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}.statusline.ok .statusdot{background:var(--accent)}.statusline.warn .statusdot{background:var(--amber)}.statusline.error .statusdot{background:var(--red)}.issue{font-size:12px;margin:10px 0 0;padding-left:11px;border-left:2px solid var(--amber);color:#c4d0d8}.issue.error{border-color:var(--red)}.issue.info{border-color:#4c758f}.issue a{color:var(--accent)}.issue-list{max-height:220px;overflow:auto}.statusnote{font-size:11px;color:var(--muted);margin:9px 0 0}.footnote{font-size:11px;color:#78919f;margin-top:14px;text-align:center}.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#253e46;color:#e5fcf7;padding:12px 19px;border:1px solid #47746f;border-radius:9px;max-width:min(600px,calc(100vw - 30px));box-shadow:0 8px 30px #0007;z-index:50;font-size:13px}.toast.error{border-color:#b85e5e;background:#41282e}dialog{border:1px solid #3b5664;background:#13222c;color:var(--text);padding:25px;border-radius:14px;max-width:640px;width:calc(100% - 30px);max-height:90vh;overflow:auto;box-shadow:0 20px 100px #0008}dialog::backdrop{background:#030a10bb}dialog h2{font-size:20px;margin-top:0}dialog p,dialog li{font-size:13px;color:#c4d1db}dialog li{padding:4px 0}dialog ol{padding-left:21px}dialog code{font-family:Consolas,ui-monospace,monospace;color:#a9f2df;overflow-wrap:anywhere}dialog .close{float:right;padding:4px 9px}.helpnote{border-left:2px solid var(--amber);padding:3px 12px;margin-top:16px}.kbd{font-family:Consolas,ui-monospace,monospace;border:1px solid #384d59;padding:0 4px;border-radius:4px;font-size:11px;color:#c7d9e1}
+@media(min-width:1450px){.workspace{grid-template-columns:minmax(0,1fr) 340px}.canvaswrap{min-height:500px}}
+@media(max-width:1020px){.shell{padding:15px}.workspace{grid-template-columns:minmax(0,1fr) 285px;gap:12px}.savearea span{display:none}.mapmeta{padding:10px 12px}.options{gap:10px}.canvaswrap{height:520px}.brand h1{font-size:18px}}
+@media(max-width:740px){.shell{padding:12px}.workspace{display:flex;flex-direction:column}.mainmap,.side{width:100%}.side{display:grid;grid-template-columns:1fr 1fr;align-items:start}.validationcard{grid-column:1/-1}.canvaswrap{height:470px}.masthead{margin-bottom:14px}.offline{display:none}.brand p{font-size:10px}.toolbar{gap:6px}.toolbar button{font-size:12px;padding:8px 10px}.toolbar .spacer{display:none}.savearea{margin-left:auto}.mapmeta{gap:8px}.toolgroup button{padding:7px 8px}.maphint{font-size:11px}}
+@media(max-width:480px){.side{display:flex}.canvaswrap{height:410px;min-height:360px}.brandmark{width:33px;height:33px;border-radius:9px}.brand h1{font-size:16px}.headright button{font-size:11px;padding:7px}.maptools{gap:6px}.empty h2{font-size:20px}}
+.polyhead{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:11px 0 7px}.vertex-table{max-height:215px;overflow:auto;border:1px solid var(--line);border-radius:7px}.vertex-row{display:grid;grid-template-columns:25px 1fr 1fr 27px;gap:5px;align-items:center;padding:5px 7px;font-size:11px}.vertex-row.selected{background:#25413e}.vertex-row input{font-family:Consolas,monospace;padding:5px;font-size:12px;min-width:0}.vertex-row button{padding:4px;font-size:14px}.mapmeta>span{white-space:nowrap}
+@media(max-width:480px){.side{align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="masthead">
+    <div class="brand"><div class="brandmark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12c4-5 6 5 10 0s6 5 10 0 5 0 6 0M3 19c4-5 6 5 10 0s6 5 10 0 5 0 6 0M3 26c4-5 6 5 10 0s6 5 10 0 5 0 6 0"/></svg></div><div><h1>Regional Water <span class="muted" style="font-weight:400">/ water editor</span></h1><p>v0.2 · polygons for experimental engine v0.6+</p></div></div>
+    <div class="headright"><span class="offline">Offline</span><button id="helpBtn" class="subtle small">? Help</button></div>
+  </header>
+  <div class="toolbar">
+    <button id="openMapBtn" class="primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3V7Z"/><path d="m3 11 3-2h15"/></svg>Open map</button>
+    <button id="importBtn" disabled>Load regions</button>
+    <button id="undoBtn" class="icon subtle" aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)" disabled>↶</button>
+    <button id="redoBtn" class="icon subtle" aria-label="Redo (Ctrl+Y)" title="Redo (Ctrl+Y)" disabled>↷</button>
+    <span class="spacer"></span>
+    <div class="savearea"><span id="saveHint" class="muted tiny">Output: .regionalwater file</span><button id="saveBtn" class="primary" disabled>Save regions</button></div>
+  </div>
+  <main class="workspace">
+    <section class="mainmap" aria-label="Map and flooding preview">
+      <div class="mapcard">
+        <div class="mapmeta"><div><div id="mapName" class="maptitle">No map open</div><div id="mapFacts" class="mapfacts">SCMAP v56 / v60 · up to 8 water regions</div></div><span class="muted tiny mono">X → &nbsp; Z ↓</span></div>
+        <div class="maptools"><div class="toolgroup"><button id="selectBtn" class="active" disabled>Select / move</button><button id="polygonBtn" disabled>+ Polygon</button><button id="drawBtn" disabled>Rectangle</button><button id="finishPolygonBtn" hidden>Finish</button></div><div class="toolgroup"><button id="zoomOutBtn" aria-label="Zoom out" disabled>−</button><span id="zoomLabel" class="zoomlabel">100 %</span><button id="zoomInBtn" aria-label="Zoom in" disabled>+</button><button id="fitBtn" disabled>Fit map</button></div></div>
+        <div id="canvasWrap" class="canvaswrap">
+          <canvas id="mapCanvas" tabindex="0" aria-label="Top view. Use Polygon to add points, then press Enter or click the first point. Edit points in the right panel."></canvas>
+          <div id="empty" class="empty"><svg viewBox="0 0 90 90" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M10 66c-8-24 6-53 26-54 27-3 45 9 43 33-3 25-12 32-37 31-16 2-28 0-32-10Z"/><path d="M20 58c-4-15 3-36 19-37 21-2 33 8 31 25-2 17-11 23-29 22-11 0-19-2-21-10Z"/><path d="M29 51c-3-10 3-21 14-21 14 0 19 6 18 17-2 11-8 14-19 13-7 0-12-2-13-9Z"/><path d="M37 45c0-5 4-8 9-7 6 0 8 4 6 8-1 5-5 6-9 5-4 0-6-2-6-6Z"/></svg><h2>Give each lake<br>its own water level.</h2><p>Open your map or drop a <span class="mono">.scmap</span>. Then draw a lake and set its water level.</p><div class="actions"><button id="emptyOpenBtn" class="primary">Open .scmap</button><button id="demoBtn" class="subtle">Try demo</button></div></div>
+        </div>
+        <div class="options"><label><input id="waterCheck" type="checkbox" checked>Water</label><label><input id="contourCheck" type="checkbox">Contours</label><label><input id="boundsCheck" type="checkbox" checked>Regions</label><label><input id="riskCheck" type="checkbox" checked>Unsafe boundaries</label></div>
+        <div id="coords" class="coords">Polygon: click points · rectangle / move: drag · wheel: zoom · middle button / space + drag: pan</div>
+      </div>
+      <div class="maphint"><span id="toolHint">Keep boundaries in dry terrain above both adjacent water levels.</span><span>Coordinates snap in steps of 2.</span></div>
+    </section>
+    <aside class="side">
+      <section class="card"><h2>Water regions <span id="regionCount" class="count">0 / 8</span></h2><div id="regionList" class="regionlist"><p class="listempty">Open a map, then add a lake using + Polygon.</p></div></section>
+      <section id="inspector" class="card" hidden>
+        <div class="inspectorheader"><h2 id="selectedTitle">Lake 1</h2><button id="deleteBtn" class="danger small" title="Delete selected lake">Remove</button></div>
+        <label class="heightlabel" for="heightInput">Water height</label><div class="heightcontrol"><button id="heightDownBtn" aria-label="Lower water by 0.5">−</button><input id="heightInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Water height"><button id="heightUpBtn" aria-label="Raise water by 0.5">+</button></div>
+        <div id="seaDiff" class="seadiff"></div>
+        <div id="boundsGrid" class="bounds"><label for="x0Input">X from<input id="x0Input" type="number" step="2" min="0" max="32768"></label><label for="z0Input">Z from<input id="z0Input" type="number" step="2" min="0" max="32768"></label><label for="x1Input">X to<input id="x1Input" type="number" step="2" min="0" max="32768"></label><label for="z1Input">Z to<input id="z1Input" type="number" step="2" min="0" max="32768"></label></div>
+        <p id="dimensions" class="dimensions"></p><div id="polygonControls" hidden><div class="polyhead">Polygon vertices <span id="vertexCount" class="count"></span></div><div class="vertex-row muted"><span>#</span><span>X</span><span>Z</span><span></span></div><div id="vertexTable" class="vertex-table"></div><p class="tiny muted">Drag vertices on the map. Double-click an edge to add a vertex. × removes one.</p></div><button id="convertBtn" class="small subtle" style="margin-top:10px">Convert to polygon</button>
+        <details class="advanced"><summary>Terrain mode</summary><label for="modeInput">On map load</label><select id="modeInput"><option value="preserve">Preserve map terrain</option><option value="gentle">Create test basin (gentle)</option></select><p id="gentleNote" class="gentlenote" hidden>For diagnostics only: the engine creates a basin and shores at load time. SCMAP remains unchanged. Use Preserve map terrain for finished maps.</p></details>
+        <div id="stats" class="stats"></div>
+      </section>
+      <section id="validationCard" class="card validationcard"><div id="statusLine" class="statusline"><span class="statusdot"></span><span id="statusTitle">Start by opening a map</span></div><div id="issueList" class="issue-list"></div><p id="statusNote" class="statusnote">The app reads terrain and saves a separate water definition. The map is not overwritten.</p></section>
+    </aside>
+  </main>
+  <footer class="footnote">Heightmap preview · verify appearance and unit movement in a test game · standard FAF does not support regional water</footer>
+</div>
+<input id="mapInput" type="file" accept=".scmap"><input id="definitionInput" type="file" accept=".regionalwater">
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="helpDialog"><button id="closeHelpBtn" class="close" aria-label="Close help">×</button><h2>Defining regional water</h2><ol><li>Create terrain and dry shores in FAF Map Editor, leave original water enabled and save your map.</li><li>Open the .scmap file here, then use Load regions to load an existing .regionalwater file.</li><li>Choose + Polygon and click around your lake. Press Enter, click the first point, double-click the last point or use Finish. Backspace removes the last point; Esc cancels.</li><li>Set water height on the right. Drag vertices or edit X/Z. Double-click an edge to add a point. Drag inside to move the region.</li><li>Keep region boundaries in dry terrain above both adjacent water levels. Polygons must not cross or touch themselves. Use 3–32 points and up to eight separate regions.</li><li>Click Save regions and place the downloaded file alongside the map as <code>yourmap.scmap.regionalwater</code>, without (1) or .txt.</li><li>Place the complete map folder in TestGame/Maps and run the experimental Regional Water engine v0.6 or later.</li></ol><p>Islands are terrain above the water level. Polygon regions preserve existing terrain. Red boundaries indicate insufficient dry separation. The preview is approximate; verify water, pathfinding and gameplay in the game. Ctrl+Z: undo; Ctrl+Y: redo; Ctrl+S: save.</p><p>Works offline; the SCMAP is never overwritten. Versions 56/60 up to 4096 × 4096 are supported. Unsaved work is not retained when closing.</p></dialog>
+<noscript>JavaScript is required. Open this file in a browser such as Edge or Chrome.</noscript>
+<script>
+/* Regional Water Editor 0.2 — standalone polygon and rectangle definitions. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.RWCore = api;
+})(globalThis, function () {
+  'use strict';
+  const MAX_REGIONS = 8, MAX_BYTES = 4096, MAX_DIMENSION = 4096, MAX_VERTICES = 32;
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const separated = (a, b) => a.x1 < b.x0 || b.x1 < a.x0 || a.z1 < b.z0 || b.z1 < a.z0;
+  const boxContains = (r, x, z) => x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1;
+  const isPolygon = r => Array.isArray(r.points);
+  const vertices = r => isPolygon(r) ? r.points : [{x:r.x0,z:r.z0},{x:r.x1,z:r.z0},{x:r.x1,z:r.z1},{x:r.x0,z:r.z1}];
+  const cloneRegion = r => isPolygon(r) ? {...r,points:r.points.map(p=>({...p}))} : {...r};
+  const cross = (a,b,c) => (b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
+  const validCoordinate = n => Number.isInteger(n) && n >= 0 && n <= 32768 && n % 2 === 0;
+  const onSegment = (a,b,p) => cross(a,b,p)===0 && p.x>=Math.min(a.x,b.x)&&p.x<=Math.max(a.x,b.x)&&p.z>=Math.min(a.z,b.z)&&p.z<=Math.max(a.z,b.z);
+  function segmentsTouch(a,b,c,d) {
+    const ac=cross(a,b,c),ad=cross(a,b,d),ca=cross(c,d,a),cb=cross(c,d,b);
+    return ((ac>0&&ad<0||ac<0&&ad>0)&&(ca>0&&cb<0||ca<0&&cb>0)) ||
+      ac===0&&onSegment(a,b,c)||ad===0&&onSegment(a,b,d)||ca===0&&onSegment(c,d,a)||cb===0&&onSegment(c,d,b);
+  }
+  function polygonError(points) {
+    if(points.length<3||points.length>MAX_VERTICES)return 'A polygon requires 3 to 32 vertices.';
+    let area=0;
+    for(let i=0;i<points.length;i++) {
+      const a=points[i],b=points[(i+1)%points.length],c=points[(i+2)%points.length];
+      if(!validCoordinate(a.x)||!validCoordinate(a.z))return 'Vertex coordinates must be even integers from 0 to 32768.';
+      if(points.slice(i+1).some(p=>p.x===a.x&&p.z===a.z))return 'Polygon vertices must be unique. Do not repeat the first vertex at the end.';
+      if(cross(a,b,c)===0&&(a.x-b.x)*(c.x-b.x)+(a.z-b.z)*(c.z-b.z)>0)return 'A polygon edge must not backtrack over itself.';
+      area+=a.x*b.z-b.x*a.z;
+      for(let j=i+1;j<points.length;j++)if(j!==i+1&&!(i===0&&j===points.length-1)&&segmentsTouch(a,b,points[j],points[(j+1)%points.length]))return 'Polygon edges cross or touch themselves.';
+    }
+    return area===0?'A polygon must have nonzero area.':null;
+  }
+  function updateBounds(r) {
+    if(!isPolygon(r))return r;
+    r.x0=Math.min(...r.points.map(p=>p.x));r.z0=Math.min(...r.points.map(p=>p.z));
+    r.x1=Math.max(...r.points.map(p=>p.x));r.z1=Math.max(...r.points.map(p=>p.z));return r;
+  }
+  function contains(r,x,z) {
+    if(!boxContains(r,x,z))return false;if(!isPolygon(r))return true;
+    let inside=false;
+    for(let i=0,j=r.points.length-1;i<r.points.length;j=i++) {
+      const a=r.points[j],b=r.points[i];
+      if((a.z>z)!==(b.z>z)&&x<a.x+(z-a.z)*(b.x-a.x)/(b.z-a.z))inside=!inside;
+    }
+    return inside;
+  }
+  function spansAtZ(r,z) {
+    if(z<r.z0||z>=r.z1)return [];
+    if(!isPolygon(r))return [[r.x0,r.x1]];
+    const xs=[];
+    for(let i=0,j=r.points.length-1;i<r.points.length;j=i++) {
+      const a=r.points[j],b=r.points[i];if((a.z>z)!==(b.z>z))xs.push(a.x+(z-a.z)*(b.x-a.x)/(b.z-a.z));
+    }
+    xs.sort((a,b)=>a-b);const spans=[];for(let i=0;i+1<xs.length;i+=2)spans.push([xs[i],xs[i+1]]);return spans;
+  }
+  function regionsTouch(a,b) {
+    if(separated(a,b))return false;const av=vertices(a),bv=vertices(b);
+    for(let i=0;i<av.length;i++)for(let j=0;j<bv.length;j++)if(segmentsTouch(av[i],av[(i+1)%av.length],bv[j],bv[(j+1)%bv.length]))return true;
+    return contains(a,bv[0].x,bv[0].z)||contains(b,av[0].x,av[0].z);
+  }
+  const finiteHeight = v => Number.isFinite(v) && Number.isFinite(Math.fround(v)) && Math.fround(v) >= -8192 && Math.fround(v) <= 8192;
+  const validRect = r => ['x0', 'z0', 'x1', 'z1'].every(k => Number.isInteger(r[k]) && r[k] >= 0 && r[k] <= 32768 && r[k] % 2 === 0) && r.x0 < r.x1 && r.z0 < r.z1;
+  const numberPattern = /^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+  class Reader {
+    constructor(buffer) {
+      if (ArrayBuffer.isView(buffer)) this.view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      else this.view = new DataView(buffer);
+      this.pos = 0;
+    }
+    need(n) {
+      if (!Number.isSafeInteger(n) || n < 0 || this.pos + n > this.view.byteLength)
+        throw new Error('The SCMAP is incomplete or has an invalid data length.');
+    }
+    skip(n) { this.need(n); this.pos += n; }
+    u8() { this.need(1); return this.view.getUint8(this.pos++); }
+    u16() { this.need(2); const v = this.view.getUint16(this.pos, true); this.pos += 2; return v; }
+    u32() { this.need(4); const v = this.view.getUint32(this.pos, true); this.pos += 4; return v; }
+    f32() { this.need(4); const v = this.view.getFloat32(this.pos, true); this.pos += 4; return v; }
+    nul(wide = false) {
+      for (let i = 0; i <= 65536; i++) if ((wide ? this.u16() : this.u8()) === 0) return;
+      throw new Error('An SCMAP string is too long or unterminated.');
+    }
+  }
+
+  // The standard v56/v60 prefix, through the original water settings. Texture,
+  // prop, scenario and script payloads are neither interpreted nor rewritten.
+  function parseSCMap(buffer, name = 'map.scmap') {
+    const r = new Reader(buffer);
+    if (r.u32() !== 0x1a70614d || r.u32() !== 2) throw new Error('Unsupported SCMAP. Select a .scmap file, not _scenario.lua.');
+    if (r.u32() !== 0xbeeffeed || r.u32() !== 2) throw new Error('Unsupported preview header. Save a working copy in FAF Map Editor as SCMAP v56 or v60.');
+    const previewWidth = r.f32(), previewDepth = r.f32();
+    if (!Number.isFinite(previewWidth) || !Number.isFinite(previewDepth)) throw new Error('Invalid SCMAP preview dimensions.');
+    r.nul(true);
+    const metaCount = r.u32();
+    if (metaCount > 65536) throw new Error('Invalid SCMAP preview metadata.');
+    r.skip(metaCount * 8);
+    const previewBytes = r.u32();
+    if (previewBytes > 64 * 1024 * 1024) throw new Error('SCMAP preview is too large.');
+    r.skip(previewBytes);
+    const version = r.u32();
+    if (version !== 56 && version !== 60) throw new Error(`SCMAP v${version} is not supported. Save a working copy as v56 or v60.`);
+    const width = r.u32(), depth = r.u32(), scale = r.f32();
+    if (width < 2 || depth < 2 || width > MAX_DIMENSION || depth > MAX_DIMENSION)
+      throw new Error(`Supported map dimensions are 2 to ${MAX_DIMENSION} units on each axis.`);
+    if (!Number.isFinite(scale) || scale <= 0) throw new Error('Invalid SCMAP height scale.');
+    const count = (width + 1) * (depth + 1);
+    r.need(count * 2);
+    const samples = new Uint16Array(count);
+    let minimum = 65535, maximum = 0;
+    const scale128 = Math.fround(scale * 128);
+    for (let i = 0; i < count; i++) {
+      const raw = r.u16();
+      // Match the engine's CHeightField::Rescale and its fixed 1/128 storage.
+      const sample = scale === 1 / 128 ? raw : Math.trunc(clamp(Math.fround(raw * scale128), 0, 65535));
+      samples[i] = sample; minimum = Math.min(minimum, sample); maximum = Math.max(maximum, sample);
+    }
+    r.u8(); // stratum shader flag
+    r.nul(); r.nul(); r.nul(); // shader, background, sky cube
+    const environments = r.u32();
+    if (environments > 1024) throw new Error('Invalid SCMAP environment count.');
+    for (let i = 0; i < environments; i++) { r.nul(); r.nul(); }
+    r.skip(23 * 4); // lighting, sun, ambience, specular, bloom, fog
+    const waterFlag = r.u8();
+    const sea = r.f32(), deep = r.f32(), abyss = r.f32();
+    if (waterFlag > 1 || ![sea, deep, abyss].every(Number.isFinite) || !finiteHeight(sea))
+      throw new Error('Could not reliably read the original SCMAP water level. The SCMAP is never overwritten.');
+    return { name, version, width, depth, sea, waterEnabled: waterFlag === 1,
+      samples, minimum: minimum / 128, maximum: maximum / 128, demo: false };
+  }
+
+  function parseDefinition(text) {
+    if(new TextEncoder().encode(text).length>MAX_BYTES)throw new Error('The definition exceeds 4096 bytes.');
+    const tokens=text.replace(/^\uFEFF/,'').replace(/#[^\n]*/g,'').split(/[ \t\r\n]+/).filter(Boolean);
+    if(tokens[0]!=='regionalwater'||!['1','2','3'].includes(tokens[1]))throw new Error('Expected a regionalwater 1, 2 or 3 header.');
+    const regions=[];
+    for(let p=2;p<tokens.length;) {
+      if(regions.length===MAX_REGIONS)throw new Error('At most eight regions are supported.');
+      let r,modeOffset,next,heightText;
+      if(tokens[p]==='region') {
+        if(tokens.length-p<8)throw new Error('Incomplete region record.');
+        const bounds=tokens.slice(p+1,p+5);heightText=tokens[p+5];
+        if(!bounds.every(v=>/^-?\d+$/.test(v)))throw new Error('Invalid rectangle coordinates.');
+        const [x0,z0,x1,z1]=bounds.map(Number);r={x0,z0,x1,z1,height:Number(heightText)};modeOffset=p+6;next=p+8;
+      } else if(tokens[p]==='polygon'&&tokens[1]==='3') {
+        heightText=tokens[p+1];const nText=tokens[p+2];
+        if(!/^\d+$/.test(nText||''))throw new Error('Missing polygon vertex count.');
+        const n=Number(nText);if(n<3||n>MAX_VERTICES||tokens.length-p<5+2*n)throw new Error('A polygon requires 3 to 32 complete X/Z coordinates.');
+        const points=[];for(let i=0;i<n;i++){const x=tokens[p+3+2*i],z=tokens[p+4+2*i];if(!/^-?\d+$/.test(x)||! /^-?\d+$/.test(z))throw new Error('Invalid polygon coordinate.');points.push({x:Number(x),z:Number(z)});}
+        const error=polygonError(points);if(error)throw new Error(error);
+        r=updateBounds({points,height:Number(heightText)});modeOffset=p+3+2*n;next=modeOffset+2;
+      } else throw new Error('Expected region or polygon in schema 3.');
+      if(!numberPattern.test(heightText||'')||!finiteHeight(r.height)||(r.height!==0&&Math.fround(r.height)===0)||!validRect(r))throw new Error('Invalid bounds or water height.');
+      if(tokens[modeOffset]!=='terrain'||!['preserve','gentle'].includes(tokens[modeOffset+1]))throw new Error('Expected terrain preserve or terrain gentle.');
+      r.mode=tokens[modeOffset+1];if(isPolygon(r)&&r.mode!=='preserve')throw new Error('Polygons only support terrain preserve.');
+      regions.push(r);p=next;
+    }
+    if(!regions.length||tokens[1]==='1'&&regions.length!==1)throw new Error('Missing region, or schema 1 contains multiple regions.');
+    return regions;
+  }
+
+  function validate(regions,map) {
+    const errors=[],add=(code,message,indices=[])=>errors.push({code,message,indices});
+    if(!map){add('map','Open an .scmap file first.');return errors;}
+    if(!map.waterEnabled||!Number.isFinite(map.sea))add('water','Enable original water in the map editor and save the map again.');
+    if(!regions.length)add('empty','Add at least one lake. To restore original water, remove the .regionalwater file from the map folder.');
+    if(regions.length>MAX_REGIONS)add('count','The engine supports at most eight lakes.');
+    let totalSamples=0;
+    for(let i=0;i<regions.length;i++) {
+      const r=regions[i],tag=`Lake ${i+1}: `;
+      if(isPolygon(r)){const error=polygonError(r.points);if(error)add('polygon',tag+error,[i]);}
+      if(!validRect(r))add('bounds',tag+'bounds must be even integers from 0 to 32768 and region size must be positive.',[i]);
+      if(!finiteHeight(r.height)||(r.height!==0&&Math.fround(r.height)===0))add('height',tag+'enter a finite height from −8192 to 8192.',[i]);
+      if(!['preserve','gentle'].includes(r.mode))add('mode',tag+'unknown terrain mode.',[i]);
+      if(r.x1>map.width||r.z1>map.depth)add('outside',tag+'the entire region must lie inside the map.',[i]);
+      if(isPolygon(r)&&r.mode!=='preserve')add('polygon-mode',tag+'polygon requires Preserve map terrain.',[i]);
+      if(!validRect(r)||!finiteHeight(r.height)||r.mode!=='gentle'||isPolygon(r))continue;
+      const h=Math.fround(r.height);
+      if(map.width!==map.depth||r.x0<=64||r.z0<=64||r.x1+64>=map.width||r.z1+64>=map.depth||r.x1-r.x0<128||r.z1-r.z0<128||h<12||Math.max(h,map.sea)+4>500)
+        add('gentle',tag+'test basins require a square map, region at least 128 × 128, more than 64 units of margin, water height at least 12 and a dry edge no higher than 500.',[i]);
+      totalSamples+=(r.x1-r.x0+129)*(r.z1-r.z0+129);
+    }
+    if(totalSamples>1048576)add('budget','Test basins exceed the combined limit of 1,048,576 height samples.');
+    const expand=r=>{if(r.mode!=='gentle')return r;const copy=cloneRegion(r);copy.x0-=64;copy.z0-=64;copy.x1+=64;copy.z1+=64;return copy;};
+    for(let i=0;i<regions.length;i++)for(let j=i+1;j<regions.length;j++) {
+      const a=regions[i],b=regions[j];
+      if(!validRect(a)||!validRect(b)||isPolygon(a)&&polygonError(a.points)||isPolygon(b)&&polygonError(b.points))continue;
+      if(regionsTouch(a,b))add('overlap',`Lakes ${i+1} and ${j+1} overlap or touch. Their boundaries must be separate.`,[i,j]);
+      else if((a.mode==='gentle'||b.mode==='gentle')&&regionsTouch(expand(a),expand(b)))add('edit-overlap',`The test basin affects another lake (${i+1}, ${j+1}).`,[i,j]);
+    }
+    return errors;
+  }
+
+  function serialize(regions,map) {
+    const errors=validate(regions,map);if(errors.length)throw new Error(errors[0].message);
+    const schema=regions.some(isPolygon)?3:2,cleanName=String(map.name||'map.scmap').replace(/[\r\n\u2028\u2029]/g,' ');
+    const text=`# Regional Water Editor 0.2 | engine v0.${schema===3?'6':'5'}+ | offline\n# ${cleanName}\nregionalwater ${schema}\n`+
+      regions.map(r=>isPolygon(r)?`polygon ${r.height} ${r.points.length} ${r.points.map(p=>`${p.x} ${p.z}`).join(' ')} terrain preserve`:
+        `region ${r.x0} ${r.z0} ${r.x1} ${r.z1} ${Object.is(r.height,-0)?0:r.height} terrain ${r.mode}`).join('\n')+'\n';
+    if(new TextEncoder().encode(text).length>MAX_BYTES)throw new Error('Output exceeds 4096 bytes.');return text;
+  }
+
+  function heightAt(map, x, z) {
+    x = clamp(x, 0, map.width); z = clamp(z, 0, map.depth);
+    const x0 = Math.floor(x), z0 = Math.floor(z), x1 = Math.min(x0 + 1, map.width), z1 = Math.min(z0 + 1, map.depth);
+    const tx = x - x0, tz = z - z0, stride = map.width + 1, a = map.samples;
+    const top = a[z0 * stride + x0] * (1 - tx) + a[z0 * stride + x1] * tx;
+    const bottom = a[z1 * stride + x0] * (1 - tx) + a[z1 * stride + x1] * tx;
+    return (top * (1 - tz) + bottom * tz) / 128;
+  }
+
+  const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+  function basinHeight(r, sea, x, z, original) {
+    const hx = (r.x1 - r.x0) / 2, hz = (r.z1 - r.z0) / 2;
+    const dx = Math.abs(x - (r.x0 + r.x1) / 2), dz = Math.abs(z - (r.z0 + r.z1) / 2);
+    const outside = Math.hypot(Math.max(0, dx - hx), Math.max(0, dz - hz));
+    if (outside >= 64 || hx <= 0 || hz <= 0) return original;
+    const rim = Math.max(Math.fround(r.height), sea) + 4;
+    if (outside > 0) return rim + (original - rim) * smooth(outside / 64);
+    const bank = smooth((Math.hypot(dx / hx, dz / hz) - .35) / .5), floor = Math.fround(r.height) - 12;
+    return floor + (rim - floor) * bank;
+  }
+
+  function effectiveHeightAt(map, regions, x, z) {
+    let h = heightAt(map, x, z);
+    for (const r of regions) if (r.mode === 'gentle' && !isPolygon(r) && validRect(r) && finiteHeight(r.height)) h = basinHeight(r, map.sea, x, z, h);
+    return h;
+  }
+  function waterAt(map, regions, x, z) {
+    for (const r of regions) if (validRect(r) && finiteHeight(r.height) && contains(r, x, z)) return Math.fround(r.height);
+    return map.sea;
+  }
+
+  // Scan actual edges through height cells, plus a bounded interior estimate.
+  // An outer map edge has no neighbouring sea and needs no dry separator.
+  function analyzeRegion(map,regions,index) {
+    const r=regions[index];
+    if(!r||!validRect(r)||!finiteHeight(r.height)||r.x1>map.width||r.z1>map.depth||isPolygon(r)&&polygonError(r.points))return null;
+    const height=Math.fround(r.height),limit=Math.max(height,map.sea),sameLevel=height===map.sea;
+    let edgeMin=Infinity,edgeCount=0,unsafe=0,tight=0;const segments=[];
+    const edge=(a,b)=>{
+      if(a.x===b.x&&(a.x===0||a.x===map.width)||a.z===b.z&&(a.z===0||a.z===map.depth))return;
+      const ts=[0,1],dx=b.x-a.x,dz=b.z-a.z;
+      if(dx)for(let x=Math.floor(Math.min(a.x,b.x))+1;x<Math.max(a.x,b.x);x++)ts.push((x-a.x)/dx);
+      if(dz)for(let z=Math.floor(Math.min(a.z,b.z))+1;z<Math.max(a.z,b.z);z++)ts.push((z-a.z)/dz);
+      ts.sort((a,b)=>a-b);const at=t=>({x:a.x+dx*t,z:a.z+dz*t});let run=null;
+      for(let i=0;i+1<ts.length;i++) {
+        const lo=ts[i],hi=ts[i+1];if(hi-lo<1e-12)continue;
+        const p=at(lo),q=at(hi),m=at((lo+hi)/2),h0=effectiveHeightAt(map,regions,p.x,p.z),h1=effectiveHeightAt(map,regions,q.x,q.z),hm=effectiveHeightAt(map,regions,m.x,m.z);
+        // Along a straight edge inside one height cell, bilinear terrain is
+        // quadratic. Check its interior minimum as well as both endpoints.
+        const aa=2*(h0+h1-2*hm),bb=h1-h0-aa,u=aa>0?-bb/(2*aa):-1;
+        let minimum=Math.min(h0,h1,hm);if(u>0&&u<1)minimum=Math.min(minimum,aa*u*u+bb*u+h0);
+        edgeMin=Math.min(edgeMin,minimum);edgeCount++;
+        const bad=!sameLevel&&minimum<=limit;if(bad)unsafe++;else if(!sameLevel&&minimum<limit+1)tight++;
+        if(bad&&run===null)run=p;
+        if(run!==null&&(!bad||i===ts.length-2)){segments.push({x0:run.x,z0:run.z,x1:q.x,z1:q.z});run=null;}
+      }
+      if(run!==null)segments.push({x0:run.x,z0:run.z,x1:b.x,z1:b.z});
+    };
+    const points=vertices(r);for(let i=0;i<points.length;i++)edge(points[i],points[(i+1)%points.length]);
+    const nx=Math.min(128,r.x1-r.x0),nz=Math.min(128,r.z1-r.z0);let wet=0,deepest=0,samples=0;
+    for(let j=0;j<nz;j++)for(let i=0;i<nx;i++) {
+      const x=r.x0+(i+.5)/nx*(r.x1-r.x0),z=r.z0+(j+.5)/nz*(r.z1-r.z0);
+      if(!contains(r,x,z))continue;samples++;
+      const d=height-effectiveHeightAt(map,regions,x,z);if(d>0){wet++;deepest=Math.max(deepest,d);}
+    }
+    return {edgeMin,edgeCount,unsafe,tight,sameLevel,segments,wetRatio:samples?wet/samples:0,deepest,limit};
+  }
+
+  function snap(v, max) { return clamp(Math.round(v / 2) * 2, 0, Math.floor(max / 2) * 2); }
+  function demo() {
+    const width = 512, depth = 512, sea = 17.5, samples = new Uint16Array(513 * 513);
+    for (let z = 0; z <= depth; z++) for (let x = 0; x <= width; x++) {
+      let h = 14 + 3 * Math.sin(x / 58) * Math.cos(z / 74);
+      const radius = (Math.abs((x - 256) / 220) ** 4 + Math.abs((z - 256) / 215) ** 4) ** .25;
+      const isle = smooth((1.06 - radius) / .16);
+      h = h * (1 - isle) + (58 + 3 * Math.sin(x / 32) * Math.sin(z / 29)) * isle;
+      for (const p of [{x:166,z:182,h:35}, {x:352,z:310,h:50}]) {
+        const d = Math.hypot((x - p.x) / 60, (z - p.z) / 76);
+        if (d < 1) h = p.h - 14 + (58 - p.h + 14) * smooth((d - .35) / .65);
+      }
+      samples[z * 513 + x] = Math.round(clamp(h * 128, 0, 65535));
+    }
+    return {
+      map: { name: 'demo.scmap', version: 60, width, depth, sea, waterEnabled: true, samples, minimum: 10, maximum: 62, demo: true },
+      regions: [{ x0: 100, z0: 100, x1: 232, z1: 264, height: 35, mode: 'preserve' }, { x0: 286, z0: 228, x1: 418, z1: 392, height: 50, mode: 'preserve' }]
+    };
+  }
+  return { MAX_REGIONS, MAX_BYTES, MAX_DIMENSION, MAX_VERTICES, clamp, contains, validRect, finiteHeight, isPolygon, vertices, cloneRegion, polygonError, updateBounds, regionsTouch, spansAtZ,
+    parseSCMap, parseDefinition, validate, serialize, heightAt, basinHeight, effectiveHeightAt, waterAt, analyzeRegion, snap, demo };
+});
+
+</script>
+<script>
+(function () {
+  'use strict';
+  const C = window.RWCore, $ = id => document.getElementById(id);
+  const palette = ['#74e5cb', '#f4be74', '#94baff', '#e6a0dc', '#a9d981', '#fb9c8c', '#a7a0ff', '#78d3ed'];
+  const state = { map: null, regions: [], selected: -1, tool: 'select', past: [], future: [], saved: '',
+    camera: { zoom: 1, x: 0, y: 0 }, drag: null, space: false, busy: false, analyses: [], errors: [], warnings: [], notice: '', drawing: [], polyCursor: null, selectedVertex: -1 };
+  const canvas = $('mapCanvas'), ctx = canvas.getContext('2d'), wrap = $('canvasWrap');
+  const bitmap = document.createElement('canvas'), bctx = bitmap.getContext('2d');
+  let baseGrid = null, previewWidth = 0, previewDepth = 0, frame = 0, previewNeeded = false, formNeeded = false, toastTimer;
+  let formBefore = null, lastPreviewTime = 0, renderTimer = 0;
+  const f = (n, digits = 2) => Number.isFinite(n) ? n.toLocaleString('cs-CZ', { maximumFractionDigits: digits }) : '—';
+  const signature = regions => JSON.stringify(regions.map(r=>[r.x0,r.z0,r.x1,r.z1,r.height,r.mode,C.isPolygon(r)?r.points.map(p=>[p.x,p.z]):null]), (_, v) => typeof v === 'number' && !Number.isFinite(v) ? String(v) : v);
+  const capture = () => ({ regions: state.regions.map(C.cloneRegion), selected: state.selected, selectedVertex: state.selectedVertex });
+  const dirty = () => state.map && !state.map.demo && signature(state.regions) !== state.saved;
+  const editing = el => el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+
+  function toast(message, error = false) {
+    clearTimeout(toastTimer); $('toast').textContent = message; $('toast').classList.toggle('error', error); $('toast').hidden = false;
+    toastTimer = setTimeout(() => { $('toast').hidden = true; }, error ? 9000 : 5500);
+  }
+  function record(before) {
+    if (signature(before.regions) !== signature(state.regions)) {
+      state.past.push(before); if (state.past.length > 80) state.past.shift(); state.future = [];
+    }
+  }
+  function change(mutator) { if (state.busy) return; const before = capture(); mutator(); record(before); schedule(true, true); }
+  function undo() {
+    if(state.tool==='polygon'&&state.drawing.length){state.drawing.pop();schedule(false,false);return;}
+    if (!state.past.length || state.drag || state.busy) return;
+    state.future.push(capture()); const previous = state.past.pop(); state.regions = previous.regions; state.selected = previous.selected; state.selectedVertex=previous.selectedVertex??-1;
+    formBefore = null; schedule(true, true);
+  }
+  function redo() {
+    if (!state.future.length || state.drag || state.busy) return;
+    state.past.push(capture()); const next = state.future.pop(); state.regions = next.regions; state.selected = next.selected; state.selectedVertex=next.selectedVertex??-1;
+    formBefore = null; schedule(true, true);
+  }
+  function setTool(tool) {
+    if (!state.map || state.busy) return;
+    if ((tool === 'draw'||tool==='polygon') && state.regions.length >= C.MAX_REGIONS) { toast('At most eight lakes are supported per map.', true); return; }
+    cancelDrag(); state.drawing=[];state.polyCursor=null;state.selectedVertex=-1;state.tool = tool;
+    if(tool==='polygon')state.selected=-1;
+    canvas.style.cursor = tool === 'draw'||tool==='polygon' ? 'crosshair' : 'default'; schedule(false, true); canvas.focus();
+  }
+
+  function finishPolygon() {
+    if(state.drawing.length<3){toast('A polygon needs at least three vertices.',true);return;}
+    const error=C.polygonError(state.drawing);if(error){toast(error,true);return;}
+    const r=C.updateBounds({points:state.drawing.map(p=>({...p})),height:Math.round((state.map.sea+12)*2)/2,mode:'preserve'});
+    change(()=>{state.regions.push(r);state.selected=state.regions.length-1;state.selectedVertex=-1;state.drawing=[];state.polyCursor=null;state.tool='select';});
+  }
+
+  function transform() {
+    const w = wrap.clientWidth, h = wrap.clientHeight, m = state.map;
+    const fit = m ? Math.min(Math.max(10, w - 76) / m.width, Math.max(10, h - 72) / m.depth) : 1;
+    const scale = fit * state.camera.zoom;
+    return { w, h, scale, ox: w / 2 - (m ? m.width : 0) * scale / 2 + state.camera.x,
+      oz: h / 2 - (m ? m.depth : 0) * scale / 2 + state.camera.y };
+  }
+  function point(e) { const rect = canvas.getBoundingClientRect(); return { px: e.clientX - rect.left, py: e.clientY - rect.top }; }
+  function world(p, t = transform()) { return { x: (p.px - t.ox) / t.scale, z: (p.py - t.oz) / t.scale }; }
+  function fit() { state.camera = { zoom: 1, x: 0, y: 0 }; drawCanvas(); $('zoomLabel').textContent = '100 %'; }
+  function zoom(factor, px, py) {
+    if (!state.map) return;
+    const t = transform(), anchor = world({ px: px ?? t.w / 2, py: py ?? t.h / 2 }, t);
+    state.camera.zoom = C.clamp(state.camera.zoom * factor, .5, 16);
+    const next = transform(); state.camera.x += (px ?? t.w / 2) - (next.ox + anchor.x * next.scale);
+    state.camera.y += (py ?? t.h / 2) - (next.oz + anchor.z * next.scale);
+    $('zoomLabel').textContent = f(state.camera.zoom * 100, 0) + ' %'; drawCanvas();
+  }
+
+  function prepareBaseGrid() {
+    const m = state.map; if (!m) return;
+    const long = Math.max(m.width, m.depth), res = Math.min(768, long);
+    previewWidth = Math.max(1, Math.round(res * m.width / long)); previewDepth = Math.max(1, Math.round(res * m.depth / long));
+    baseGrid = new Float32Array(previewWidth * previewDepth);
+    for (let z = 0; z < previewDepth; z++) for (let x = 0; x < previewWidth; x++)
+      baseGrid[z * previewWidth + x] = C.heightAt(m, (x + .5) / previewWidth * m.width, (z + .5) / previewDepth * m.depth);
+    bitmap.width = previewWidth; bitmap.height = previewDepth;
+  }
+  function buildPreview() {
+    if (!state.map) return;
+    const m = state.map, w = previewWidth, h = previewDepth;
+    const regions = state.regions.filter(r => C.validRect(r) && C.finiteHeight(r.height));
+    const gentle = regions.filter(r => r.mode === 'gentle' && !C.isPolygon(r));
+    const grid = gentle.length ? new Float32Array(baseGrid) : baseGrid;
+    if (gentle.length) for (let z = 0; z < h; z++) for (let x = 0; x < w; x++) {
+      const wx = (x + .5) / w * m.width, wz = (z + .5) / h * m.depth, p = z * w + x;
+      for (const r of gentle) grid[p] = C.basinHeight(r, m.sea, wx, wz, grid[p]);
+    }
+    const image = bctx.createImageData(w, h), data = image.data;
+    const water = $('waterCheck').checked && m.waterEnabled, contours = $('contourCheck').checked;
+    const range = Math.max(18, m.maximum - m.minimum);
+    for (let z = 0; z < h; z++) {
+      const rowSpans=regions.map(r=>C.spansAtZ(r,(z+.5)/h*m.depth));
+      for (let x = 0; x < w; x++) {
+      const p = z * w + x, y = grid[p], left = grid[z * w + Math.max(0, x - 1)], up = grid[Math.max(0, z - 1) * w + x];
+      const right = grid[z * w + Math.min(w - 1, x + 1)], down = grid[Math.min(h - 1, z + 1) * w + x];
+      const slope = C.clamp(.88 + (left - right) * .05 * w / m.width + (up - down) * .06 * h / m.depth, .45, 1.28);
+      const t = C.clamp((y - m.minimum) / range, 0, 1);
+      let red = (74 + t * 80) * slope, green = (91 + t * 56) * slope, blue = (77 + t * 60) * slope;
+      let level = m.sea, local = -1;
+      const wx = (x + .5) / w * m.width;
+      for (let i = 0; i < regions.length; i++) if (rowSpans[i].some(span=>wx>=span[0]&&wx<span[1])) { level = Math.fround(regions[i].height); local = i; break; }
+      if (water && y < level) {
+        const d = C.clamp((level - y) / 28, 0, 1), shore = 1 - d;
+        red = 16 + 18 * shore; green = 49 + 48 * shore; blue = 72 + 46 * shore;
+        if (local >= 0) { red += 4; green += 10; blue += 3; }
+        const shade = .86 + .14 * slope; red *= shade; green *= shade; blue *= shade;
+      }
+      if (contours && (Math.floor(y / 4) !== Math.floor(left / 4) || Math.floor(y / 4) !== Math.floor(up / 4))) { red *= .7; green *= .7; blue *= .7; }
+      const q = p * 4; data[q] = red; data[q + 1] = green; data[q + 2] = blue; data[q + 3] = 255;
+    }
+    }
+    bctx.putImageData(image, 0, 0); lastPreviewTime = performance.now();
+  }
+
+  function drawCanvas() {
+    const t = transform(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.round(t.w * dpr) || canvas.height !== Math.round(t.h * dpr)) {
+      canvas.width = Math.round(t.w * dpr); canvas.height = Math.round(t.h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, t.w, t.h); ctx.fillStyle = '#091219'; ctx.fillRect(0, 0, t.w, t.h);
+    if (!state.map) {
+      ctx.strokeStyle = '#1b2c3590'; ctx.lineWidth = 1;
+      for (let x = 22; x < t.w; x += 36) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, t.h); ctx.stroke(); }
+      for (let z = 22; z < t.h; z += 36) { ctx.beginPath(); ctx.moveTo(0, z); ctx.lineTo(t.w, z); ctx.stroke(); }
+      return;
+    }
+    const m = state.map, sx = x => t.ox + x * t.scale, sz = z => t.oz + z * t.scale;
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(bitmap, t.ox, t.oz, m.width * t.scale, m.depth * t.scale);
+    ctx.save(); ctx.beginPath(); ctx.rect(t.ox, t.oz, m.width * t.scale, m.depth * t.scale); ctx.clip();
+    if ($('boundsCheck').checked) state.regions.forEach((r,i)=>{
+      if(!C.validRect(r))return;
+      const selected=i===state.selected,points=C.vertices(r),x=sx(points[0].x),z=sz(points[0].z);
+      ctx.beginPath();points.forEach((p,j)=>j?ctx.lineTo(sx(p.x),sz(p.z)):ctx.moveTo(sx(p.x),sz(p.z)));ctx.closePath();
+      ctx.fillStyle=palette[i]+(selected?'10':'05');ctx.fill();ctx.strokeStyle=palette[i];ctx.lineWidth=selected?2:1.2;ctx.setLineDash(selected?[]:[5,4]);ctx.stroke();ctx.setLineDash([]);
+      ctx.font='11px Segoe UI,sans-serif';const label=`${i+1} · ${f(r.height)}`,textWidth=ctx.measureText(label).width+17;
+      ctx.fillStyle='#07151be6';ctx.fillRect(x+1,z+1,textWidth+6,23);ctx.fillStyle=palette[i];ctx.fillText(label,x+9,z+16);
+      if(selected&&state.tool==='select')points.forEach((p,j)=>{
+        const hx=sx(p.x),hz=sz(p.z),active=C.isPolygon(r)&&j===state.selectedVertex,size=active?10:8;
+        ctx.fillStyle=active?palette[i]:'#0e2026';ctx.fillRect(hx-size/2,hz-size/2,size,size);ctx.strokeStyle=palette[i];ctx.lineWidth=1.5;ctx.strokeRect(hx-size/2,hz-size/2,size,size);
+      });
+    });
+    if ($('riskCheck').checked) {
+      ctx.strokeStyle = '#ff7d7d'; ctx.lineWidth = 3; ctx.setLineDash([]);
+      for (const a of state.analyses) if (a) for (const segment of a.segments) {
+        ctx.beginPath(); ctx.moveTo(sx(segment.x0), sz(segment.z0)); ctx.lineTo(sx(segment.x1), sz(segment.z1)); ctx.stroke();
+      }
+    }
+    if (state.drag?.type === 'draw') {
+      const r = state.drag.rect, x = sx(r.x0), z = sz(r.z0);
+      ctx.fillStyle = '#85eadb20'; ctx.fillRect(x, z, (r.x1 - r.x0) * t.scale, (r.z1 - r.z0) * t.scale);
+      ctx.strokeStyle = '#c3fff0'; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.strokeRect(x, z, (r.x1 - r.x0) * t.scale, (r.z1 - r.z0) * t.scale); ctx.setLineDash([]);
+      ctx.fillStyle = '#e2fff6'; ctx.font = '12px Consolas, monospace'; ctx.fillText(`${r.x1-r.x0} × ${r.z1-r.z0}`, x + 8, z + 18);
+    }
+    if(state.tool==='polygon'&&state.drawing.length){
+      const points=state.drawing;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(sx(p.x),sz(p.z)):ctx.moveTo(sx(p.x),sz(p.z)));
+      if(state.polyCursor)ctx.lineTo(sx(state.polyCursor.x),sz(state.polyCursor.z));
+      ctx.strokeStyle='#a4f7df';ctx.lineWidth=2;ctx.stroke();
+      ctx.setLineDash([4,4]);ctx.lineTo(sx(points[0].x),sz(points[0].z));ctx.stroke();ctx.setLineDash([]);
+      points.forEach((p,i)=>{ctx.fillStyle=i===0?'#f4be74':'#a4f7df';ctx.fillRect(sx(p.x)-4,sz(p.z)-4,8,8);});
+    }
+    ctx.restore();
+    ctx.strokeStyle = '#526773'; ctx.lineWidth = 1; ctx.strokeRect(t.ox, t.oz, m.width * t.scale, m.depth * t.scale);
+    const spacing = Math.max(2, Math.pow(2, Math.ceil(Math.log2(85 / t.scale))));
+    ctx.font = '10px Consolas, monospace'; ctx.fillStyle = '#9aafbd'; ctx.strokeStyle = '#59707d'; ctx.textAlign = 'center';
+    for (let x = 0; x <= m.width; x += spacing) if (sx(x) >= 12 && sx(x) <= t.w - 12) {
+      const y = C.clamp(t.oz - 9, 14, t.h - 12); ctx.fillText(String(x), sx(x), y);
+    }
+    ctx.textAlign = 'right';
+    for (let z = 0; z <= m.depth; z += spacing) if (sz(z) >= 15 && sz(z) <= t.h - 12) ctx.fillText(String(z), C.clamp(t.ox - 7, 29, t.w - 10), sz(z) + 3);
+    ctx.textAlign = 'left';
+  }
+
+  function computeChecks() {
+    state.errors = C.validate(state.regions, state.map); state.warnings = [];
+    state.analyses = state.map ? state.regions.map((_, i) => C.analyzeRegion(state.map, state.regions, i)) : [];
+    for (let i = 0; i < state.analyses.length; i++) {
+      const a = state.analyses[i]; if (!a) continue;
+      if (a.unsafe) state.warnings.push({ indices: [i], message: `Lake ${i + 1}: boundary lacks dry separation above ${f(a.limit)}. Move red sections to higher terrain or edit the shore.` });
+      else if (a.tight) state.warnings.push({ indices: [i], message: `Lake ${i + 1}: shore clearance is under 1 unit above the higher water level. Raise it or move the boundary.` });
+      if (a.wetRatio === 0) state.warnings.push({ indices: [i], message: `Lake ${i + 1}: the preview found no flooded terrain. Check the region and water height.` });
+    }
+  }
+  function renderList() {
+    $('regionCount').textContent = `${state.regions.length} / ${C.MAX_REGIONS}`; const list = $('regionList'); list.replaceChildren();
+    if (!state.regions.length) { const p = document.createElement('p'); p.className = 'listempty'; p.textContent = state.map ? 'Click + Polygon to draw a lake boundary. Press Enter to finish.' : 'Open a map, then add a lake using + Polygon.'; list.append(p); return; }
+    state.regions.forEach((r, i) => {
+      const b = document.createElement('button'); b.className = 'regionrow' + (i === state.selected ? ' selected' : ''); b.style.setProperty('--color', palette[i]); b.setAttribute('aria-pressed', i === state.selected ? 'true' : 'false'); b.setAttribute('aria-label', `Lake ${i+1}, water level ${f(r.height)}`);
+      const dot = document.createElement('span'); dot.className = 'dot';
+      const name = document.createElement('span'); name.className = 'regionname'; name.textContent = `Lake ${i+1}`;
+      const detail = document.createElement('small'); detail.textContent = `${C.isPolygon(r)?r.points.length+' vertices':f(r.x1-r.x0,0)+' × '+f(r.z1-r.z0,0)} · ${r.mode === 'gentle' ? 'test basin' : 'map terrain'}`; name.append(detail);
+      const height = document.createElement('span'); height.className = 'regionheight'; height.textContent = f(r.height);
+      b.append(dot, name, height);
+      if ([...state.errors, ...state.warnings].some(e => e.indices.includes(i))) { const flag = document.createElement('span'); flag.className = 'rowflag'; flag.textContent = '!'; flag.title = 'Region has warnings or errors'; b.append(flag); }
+      b.onclick = () => { state.selected = i; state.selectedVertex=-1;state.drawing=[];state.polyCursor=null;state.tool = 'select'; schedule(false, true); }; list.append(b);
+    });
+  }
+  function renderInspector(fillForm) {
+    const r=state.regions[state.selected];$('inspector').hidden=!r;if(!r)return;
+    const poly=C.isPolygon(r);$('selectedTitle').textContent=`Lake ${state.selected+1}`;
+    if(fillForm){$('heightInput').value=Number.isFinite(r.height)?String(r.height):'';for(const key of ['x0','z0','x1','z1'])$(key+'Input').value=Number.isFinite(r[key])?String(r[key]):'';$('modeInput').value=r.mode;}
+    $('boundsGrid').hidden=poly;$('polygonControls').hidden=!poly;$('convertBtn').hidden=poly;
+    const diff=Math.fround(r.height)-state.map.sea;$('seaDiff').textContent=`Sea ${f(state.map.sea)} · difference ${diff>0?'+':''}${f(diff)}`;
+    $('dimensions').textContent=(poly?'Polygon · bounds ':'Region ')+`${f(r.x1-r.x0,0)} × ${f(r.z1-r.z0,0)} · even coordinates.`;
+    $('gentleNote').hidden=r.mode!=='gentle';
+    if(poly){$('vertexCount').textContent=`${r.points.length} / ${C.MAX_VERTICES}`;renderVertices(r,fillForm);}
+    const a=state.analyses[state.selected],box=$('stats');box.replaceChildren();
+    if(a){const stats=[['Flooded · estimate',`${f(a.wetRatio*100,0)} %`],['Max depth · estimate',f(a.deepest)],['Lowest separating edge',a.edgeCount?f(a.edgeMin):'map edge']];
+      for(let i=0;i<stats.length;i++){const div=document.createElement('div');div.className='stat'+(i===2?' wide':'');const label=document.createElement('span'),value=document.createElement('strong');label.textContent=stats[i][0];value.textContent=stats[i][1];div.append(label,value);box.append(div);}}
+  }
+  function removeVertex(index){const r=state.regions[state.selected];if(!r||!C.isPolygon(r)||r.points.length<=3)return;change(()=>{r.points.splice(index,1);C.updateBounds(r);state.selectedVertex=Math.min(index,r.points.length-1);});}
+  function renderVertices(r,fillForm){
+    const table=$('vertexTable');if(!fillForm&&table.children.length===r.points.length)return;table.replaceChildren();
+    r.points.forEach((p,i)=>{
+      const row=document.createElement('div');row.className='vertex-row'+(i===state.selectedVertex?' selected':'');const number=document.createElement('span');number.textContent=String(i+1);row.append(number);
+      for(const key of ['x','z']){const input=document.createElement('input');input.type='number';input.step='2';input.min='0';input.max=String(key==='x'?state.map.width:state.map.depth);input.value=Number.isFinite(p[key])?String(p[key]):'';input.setAttribute('aria-label',`Bod ${i+1} ${key.toUpperCase()}`);input.dataset.vertex=String(i);input.dataset.axis=key;
+        input.onfocus=()=>{state.selectedVertex=i;formBefore=capture();drawCanvas();};
+        input.oninput=()=>{if(state.busy)return;r.points[i][key]=input.value===''?NaN:Number(input.value);C.updateBounds(r);schedule(true,false);};
+        const commit=()=>{if(formBefore){record(formBefore);formBefore=null;}schedule(false,false);};input.onchange=commit;input.onblur=commit;row.append(input);}
+      const del=document.createElement('button');del.className='danger';del.textContent='×';del.title=`Odebrat bod ${i+1}`;del.setAttribute('aria-label',del.title);del.dataset.removeVertex=String(i);del.disabled=r.points.length<=3;del.onclick=()=>removeVertex(i);row.append(del);table.append(row);
+    });
+  }
+  function renderStatus() {
+    let title = 'Start by opening a map', type = '', note = 'The app reads terrain and saves a separate water definition. The map is not overwritten.';
+    if (state.map) {
+      if (state.errors.length) { title = state.regions.length || !state.map.waterEnabled ? 'Fix the definition' : 'Add your first lake'; type = state.regions.length || !state.map.waterEnabled ? 'error' : ''; }
+      else if (state.warnings.length) { title = 'Check the shores'; type = 'warn'; note = 'Engine rules passed. Terrain warnings do not block export; check them before playing.'; }
+      else { title = 'Ready to export'; type = 'ok'; note = 'Engine rules and boundary checks passed. Preview is approximate; test unit movement in game.'; }
+      if (state.map.demo) { title = 'Demo'; type = ''; note = 'This is demo terrain. Open a real .scmap file to export.'; }
+    }
+    $('statusTitle').textContent = title; $('statusLine').className = 'statusline ' + type; $('statusNote').textContent = note;
+    const list = $('issueList'); list.replaceChildren();
+    const append = (message, cls) => { const p = document.createElement('p'); p.className = 'issue '+cls; p.textContent = message; list.append(p); };
+    if (state.map) for (const e of state.errors) append(e.message, 'error');
+    for (const w of state.warnings) append(w.message, '');
+    if (state.notice) append(state.notice, 'info');
+    if(state.regions.some(C.isPolygon))append('Polygons require experimental engine v0.6 or later and use schema 3.','info');
+    if (state.regions.some(r => r.mode === 'gentle')) append('The preview simulates gentle terrain edits. The basin is created when the game loads.', 'info');
+    if(state.tool==='polygon'&&state.drawing.length){$('statusTitle').textContent=`Finish polygon · ${state.drawing.length} vertices`;$('statusNote').textContent='Press Enter or click the first point to finish. Backspace removes the last point; Esc cancels.';}
+    const canSave = state.map && !state.map.demo && !state.errors.length && !state.busy && !state.drawing.length;
+    $('saveBtn').disabled = !canSave;
+    $('saveHint').textContent = state.busy ? 'Loading…' : state.map ? (dirty() ? 'Unsaved changes · ' : '') + state.map.name + '.regionalwater' : 'Output: .regionalwater file';
+    $('saveBtn').title = canSave ? 'Download water definition for the map' : state.map?.demo ? 'Open a real SCMAP to export.' : state.errors[0]?.message || 'Open an SCMAP first.';
+  }
+  function renderUI(fillForm = false) {
+    computeChecks(); renderList(); renderInspector(fillForm); renderStatus();
+    const ready = !!state.map && !state.busy;
+    for (const id of ['importBtn','selectBtn','zoomOutBtn','zoomInBtn','fitBtn']) $(id).disabled = !ready;
+    $('drawBtn').disabled=$('polygonBtn').disabled=!ready||state.regions.length>=C.MAX_REGIONS;
+    $('polygonBtn').classList.toggle('active',state.tool==='polygon');$('polygonBtn').setAttribute('aria-pressed',String(state.tool==='polygon'));
+    $('finishPolygonBtn').hidden=state.tool!=='polygon';$('finishPolygonBtn').disabled=!ready||state.drawing.length<3;
+    $('selectBtn').classList.toggle('active', state.tool === 'select'); $('drawBtn').classList.toggle('active', state.tool === 'draw');
+    $('selectBtn').setAttribute('aria-pressed', String(state.tool === 'select')); $('drawBtn').setAttribute('aria-pressed', String(state.tool === 'draw'));
+    $('undoBtn').disabled = state.busy || (!state.past.length&&!state.drawing.length); $('redoBtn').disabled = state.busy || !state.future.length;
+    $('openMapBtn').disabled = state.busy;
+    for (const el of $('inspector').querySelectorAll('input,select,button')) el.disabled=state.busy;
+    const selectedRegion=state.regions[state.selected];if(selectedRegion&&C.isPolygon(selectedRegion)){$('modeInput').disabled=true;for(const el of $('vertexTable').querySelectorAll('button'))el.disabled=state.busy||selectedRegion.points.length<=3;}
+    $('toolHint').textContent = state.tool==='polygon'?`Click to add vertices (${state.drawing.length}/32). Enter or first vertex finishes; Backspace removes one.` : state.tool === 'draw' ? 'Drag to draw a region. Keep its boundary in dry terrain. Esc cancels.' : 'Select a lake; drag to move or resize using corners. Arrows move by 2.';
+    document.title = (dirty() ? '• ' : '') + 'Regional Water — water editor';
+  }
+  function schedule(preview = false, form = false) {
+    previewNeeded ||= preview; formNeeded ||= form;
+    if (frame || renderTimer) return;
+    const draw = () => { frame = 0; const pf = previewNeeded, ff = formNeeded; previewNeeded = formNeeded = false; renderUI(ff); if (pf && state.map) buildPreview(); drawCanvas(); };
+    const delay = previewNeeded ? Math.max(0, 60 - (performance.now() - lastPreviewTime)) : 0;
+    if (delay > 0) renderTimer = setTimeout(() => { renderTimer = 0; frame = requestAnimationFrame(draw); }, delay);
+    else frame = requestAnimationFrame(draw);
+  }
+
+  async function openMap(file) {
+    if (!file || state.busy) return false;
+    if (!/\.scmap$/i.test(file.name)) { toast('Choose an .scmap file.', true); return false; }
+    if (file.size > 512 * 1024 * 1024) { toast('SCMAP exceeds 512 MB, which this version does not support.', true); return false; }
+    state.busy = true; renderUI(false);
+    try {
+      const bytes = await file.slice(0, 128 * 1024 * 1024).arrayBuffer();
+      const map = C.parseSCMap(bytes, file.name);
+      const keep = state.map && !state.map.demo && state.map.name === map.name && state.map.width === map.width && state.map.depth === map.depth;
+      if (!keep && (dirty()||state.drawing.length) && !confirm('Current changes are unsaved. Opening another map will discard them. Continue?')) return false;
+      if (!keep) { state.regions = []; state.selected = -1; state.past = []; state.future = []; state.saved = signature([]); }
+      state.map = map; state.notice = keep ? 'Terrain reloaded. Current regions were retained and checked against the new heightmap.' : '';
+      if(!keep){state.tool='select';state.drawing=[];state.polyCursor=null;state.selectedVertex=-1;} formBefore = null; prepareBaseGrid(); updateMapHeader(); fit();
+      toast(keep ? 'Terrain reloaded; water regions retained.' : 'Map loaded. Add a lake or load existing regions.');
+      return true;
+    } catch (e) { toast(e.message || 'Could not load the map.', true); return false; }
+    finally { state.busy = false; schedule(true, true); }
+  }
+  function updateMapHeader() {
+    const m = state.map; $('empty').hidden = !!m; $('mapName').textContent = m.name;
+    if (m.demo) { const tag = document.createElement('span'); tag.className = 'demo-tag'; tag.textContent = 'DEMO'; $('mapName').append(tag); }
+    $('mapFacts').textContent = `${f(m.width,0)} × ${f(m.depth,0)} · SCMAP v${m.version} · original water level ${f(m.sea)}${m.waterEnabled ? '' : ' · WATER DISABLED'}`;
+  }
+  async function importDefinition(file) {
+    if (!state.map || !file || state.busy) return;
+    state.busy = true; renderUI(false);
+    try {
+      if (file.size > C.MAX_BYTES) throw new Error('The definition exceeds 4096 bytes.');
+      const regions = C.parseDefinition(await file.text());
+      if ((dirty()||state.drawing.length) && !confirm('Loading this definition replaces unsaved regions. Continue?')) return;
+      const before = capture(); state.regions = regions; state.selected = 0;state.selectedVertex=-1;state.drawing=[];state.polyCursor=null; state.tool = 'select'; record(before);
+      const matching = file.name === state.map.name + '.regionalwater';
+      state.saved = matching ? signature(regions) : '';
+      state.notice = matching ? '' : `Loaded from ${file.name}. Output will use the current map name; check that these regions match its terrain.`;
+      toast('Water regions loaded.');
+    } catch (e) { toast(e.message || 'Could not load the definition.', true); }
+    finally { state.busy = false; schedule(true, true); }
+  }
+  function save() {
+    if (state.busy || state.map?.demo || !state.map) return;
+    if(state.drawing.length){toast('Finish the polygon with Enter or cancel with Esc first.',true);return;}
+    try {
+      const text = C.serialize(state.regions, state.map), name = state.map.name + '.regionalwater';
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' }), url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = name; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+      state.saved = signature(state.regions); schedule(false, false);
+      toast(`Definition sent for download. Place ${name} beside the SCMAP and check its name has no (1).`);
+    } catch (e) { toast(e.message, true); $('validationCard').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  }
+  async function handleFiles(files) {
+    if (state.busy) { toast('Please wait for loading to finish.'); return; }
+    const maps = [...files].filter(f => /\.scmap$/i.test(f.name)), definitions = [...files].filter(f => /\.regionalwater$/i.test(f.name));
+    if (maps.length > 1 || definitions.length > 1) { toast('Open one map and at most one matching water definition.', true); return; }
+    if (!maps.length && !definitions.length) { toast('Drop an .scmap or .regionalwater file.', true); return; }
+    if (maps.length && !await openMap(maps[0])) return;
+    if (definitions.length) { if (!state.map) toast('Open an .scmap map first.', true); else await importDefinition(definitions[0]); }
+  }
+
+  function hitCorner(p) {
+    const r=state.regions[state.selected];if(!r||!C.validRect(r)||!$('boundsCheck').checked)return null;
+    const t=transform();
+    if(C.isPolygon(r)){for(let i=0;i<r.points.length;i++)if(Math.hypot(p.px-t.ox-r.points[i].x*t.scale,p.py-t.oz-r.points[i].z*t.scale)<=10)return {vertex:i};}
+    else for(const [xk,zk] of [['x0','z0'],['x1','z0'],['x0','z1'],['x1','z1']])if(Math.hypot(p.px-t.ox-r[xk]*t.scale,p.py-t.oz-r[zk]*t.scale)<=10)return {xk,zk};
+    return null;
+  }
+  function nearestEdge(p) {
+    const r=state.regions[state.selected];if(!r||!C.isPolygon(r)||!C.validRect(r)||!$('boundsCheck').checked)return null;
+    const w=world(p),t=transform();let best=null;
+    for(let i=0;i<r.points.length;i++){
+      const a=r.points[i],b=r.points[(i+1)%r.points.length],dx=b.x-a.x,dz=b.z-a.z;
+      const u=C.clamp(((w.x-a.x)*dx+(w.z-a.z)*dz)/(dx*dx+dz*dz||1),0,1),x=a.x+u*dx,z=a.z+u*dz,distance=Math.hypot(x-w.x,z-w.z)*t.scale;
+      if(distance<=10&&(!best||distance<best.distance))best={index:i,x,z,distance};
+    }
+    return best;
+  }
+  function cancelDrag() {
+    if(!state.drag)return;const d=state.drag;
+    if(d.before&&d.type!=='draw'){state.regions=d.before.regions;state.selected=d.before.selected;state.selectedVertex=d.before.selectedVertex??-1;}
+    if(d.type==='pan')state.camera=d.camera;
+    state.drag=null;if(canvas.hasPointerCapture(d.pointerId))canvas.releasePointerCapture(d.pointerId);schedule(true,true);
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(!state.map||state.busy||state.drag||(e.button!==0&&e.button!==1))return;
+    const p=point(e),w=world(p);canvas.focus();e.preventDefault();
+    const d={pointerId:e.pointerId,start:p,world:w,before:capture()};
+    if(e.button===1||state.space)state.drag={...d,type:'pan',camera:{...state.camera}};
+    else if(state.tool==='polygon'){
+      if(w.x<0||w.z<0||w.x>state.map.width||w.z>state.map.depth)return;
+      const q={x:C.snap(w.x,state.map.width),z:C.snap(w.z,state.map.depth)},first=state.drawing[0],t=transform();
+      if(first&&state.drawing.length>=3&&Math.hypot((q.x-first.x)*t.scale,(q.z-first.z)*t.scale)<=10){finishPolygon();return;}
+      if(state.drawing.some(v=>v.x===q.x&&v.z===q.z))return;
+      if(state.drawing.length>=C.MAX_VERTICES){toast('At most 32 vertices. Press Enter to finish or Backspace to remove a vertex.',true);return;}
+      state.drawing.push(q);state.polyCursor=q;schedule(false,false);return;
+    }else if(state.tool==='draw'){
+      if(w.x<0||w.z<0||w.x>state.map.width||w.z>state.map.depth||state.regions.length>=C.MAX_REGIONS)return;
+      const x=C.snap(w.x,state.map.width),z=C.snap(w.z,state.map.depth);state.drag={...d,type:'draw',anchor:{x,z},rect:{x0:x,z0:z,x1:x,z1:z}};
+    }else{
+      const corner=hitCorner(p);
+      if(corner){state.selectedVertex=corner.vertex??-1;state.drag={...d,type:corner.vertex!==undefined?'vertex':'resize',corner,original:C.cloneRegion(state.regions[state.selected])};}
+      else{
+        let hit=-1;
+        if(state.selected>=0&&(C.contains(state.regions[state.selected],w.x,w.z)||nearestEdge(p)))hit=state.selected;
+        else for(let i=state.regions.length-1;i>=0;i--)if(C.contains(state.regions[i],w.x,w.z)){hit=i;break;}
+        if(hit<0){state.selected=-1;state.selectedVertex=-1;schedule(false,true);return;}
+        state.selected=hit;state.selectedVertex=-1;d.before.selected=hit;d.before.selectedVertex=-1;state.drag={...d,type:'move',original:C.cloneRegion(state.regions[hit])};
+      }
+    }
+    canvas.setPointerCapture(e.pointerId);schedule(false,true);
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(!state.map)return;const p=point(e),w=world(p),d=state.drag;
+    if(w.x>=0&&w.z>=0&&w.x<=state.map.width&&w.z<=state.map.depth){const h=C.effectiveHeightAt(state.map,state.regions,w.x,w.z),level=C.waterAt(state.map,state.regions,w.x,w.z);
+      $('coords').textContent=`X ${f(w.x,0)}   Z ${f(w.z,0)}   ·   terrain ${f(h)}   ·   water level ${state.map.waterEnabled?f(level):'disabled'}   ·   depth ${state.map.waterEnabled?f(Math.max(0,level-h)):'—'}`;}
+    if(!d){
+      if(state.tool==='polygon'){state.polyCursor={x:C.snap(w.x,state.map.width),z:C.snap(w.z,state.map.depth)};drawCanvas();}
+      canvas.style.cursor=state.space?'grab':state.tool==='draw'||state.tool==='polygon'?'crosshair':hitCorner(p)?'move':'default';return;
+    }
+    if(e.pointerId!==d.pointerId)return;
+    if(d.type==='pan'){state.camera.x=d.camera.x+p.px-d.start.px;state.camera.y=d.camera.y+p.py-d.start.py;drawCanvas();return;}
+    if(d.type==='draw'){const x=C.snap(w.x,state.map.width),z=C.snap(w.z,state.map.depth);d.rect={x0:Math.min(x,d.anchor.x),z0:Math.min(z,d.anchor.z),x1:Math.max(x,d.anchor.x),z1:Math.max(z,d.anchor.z)};drawCanvas();return;}
+    const r=state.regions[state.selected],o=d.original;
+    if(d.type==='move'){
+      const dx=C.clamp(Math.round((w.x-d.world.x)/2)*2,-o.x0,Math.floor(state.map.width/2)*2-o.x1),dz=C.clamp(Math.round((w.z-d.world.z)/2)*2,-o.z0,Math.floor(state.map.depth/2)*2-o.z1);
+      if(C.isPolygon(o)){r.points=o.points.map(v=>({x:v.x+dx,z:v.z+dz}));C.updateBounds(r);}
+      else Object.assign(r,{x0:o.x0+dx,x1:o.x1+dx,z0:o.z0+dz,z1:o.z1+dz});
+    }else if(d.type==='vertex'){
+      r.points[d.corner.vertex]={x:C.snap(w.x,state.map.width),z:C.snap(w.z,state.map.depth)};C.updateBounds(r);
+    }else if(d.type==='resize'){
+      const x=C.snap(w.x,state.map.width),z=C.snap(w.z,state.map.depth),{xk,zk}=d.corner;r[xk]=xk==='x0'?Math.min(x,o.x1-2):Math.max(x,o.x0+2);r[zk]=zk==='z0'?Math.min(z,o.z1-2):Math.max(z,o.z0+2);
+    }
+    schedule(true,true);drawCanvas();
+  });
+  function endDrag(e){
+    const d=state.drag;if(!d||e.pointerId!==d.pointerId)return;state.drag=null;if(canvas.hasPointerCapture(d.pointerId))canvas.releasePointerCapture(d.pointerId);
+    if(d.type==='draw'){
+      if(d.rect.x1-d.rect.x0>=2&&d.rect.z1-d.rect.z0>=2){const height=Math.round((state.map.sea+12)*2)/2;state.regions.push({...d.rect,height,mode:'preserve'});state.selected=state.regions.length-1;state.selectedVertex=-1;state.tool='select';record(d.before);}
+      else toast('Drag to draw a region. Minimum size is 2 × 2.');
+    }else if(d.type!=='pan')record(d.before);schedule(true,true);
+  }
+  canvas.addEventListener('dblclick',e=>{
+    if(state.busy||!state.map)return;
+    if(state.tool==='polygon'){finishPolygon();return;}
+    if(state.tool!=='select')return;const edge=nearestEdge(point(e)),r=state.regions[state.selected];if(!edge||!r)return;
+    if(r.points.length>=C.MAX_VERTICES){toast('The polygon already has 32 vertices.',true);return;}
+    const v={x:C.snap(edge.x,state.map.width),z:C.snap(edge.z,state.map.depth)};if(r.points.some(p=>p.x===v.x&&p.z===v.z))return;
+    change(()=>{r.points.splice(edge.index+1,0,v);C.updateBounds(r);state.selectedVertex=edge.index+1;});
+  });
+  canvas.addEventListener('pointerup',endDrag);
+  canvas.addEventListener('pointercancel',()=>cancelDrag());
+  canvas.addEventListener('lostpointercapture',()=>{if(state.drag)cancelDrag();});
+  canvas.addEventListener('wheel',e=>{if(!state.map)return;e.preventDefault();const p=point(e);zoom(Math.exp(-C.clamp(e.deltaY,-200,200)*.002),p.px,p.py);},{passive:false});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  wrap.addEventListener('dragover',e=>{e.preventDefault();wrap.classList.add('dragover');});
+  wrap.addEventListener('dragleave',e=>{if(!wrap.contains(e.relatedTarget))wrap.classList.remove('dragover');});
+  wrap.addEventListener('drop',e=>{e.preventDefault();wrap.classList.remove('dragover');handleFiles(e.dataTransfer.files);});
+  // Dropping a map anywhere in the window must not navigate away from work.
+  document.addEventListener('dragover',e=>e.preventDefault());
+  document.addEventListener('drop',e=>{if(!wrap.contains(e.target)){e.preventDefault();handleFiles(e.dataTransfer.files);}});
+
+  $('openMapBtn').onclick=$('emptyOpenBtn').onclick=()=>{$('mapInput').value='';$('mapInput').click();};
+  $('mapInput').onchange=e=>openMap(e.target.files[0]);
+  $('importBtn').onclick=()=>{$('definitionInput').value='';$('definitionInput').click();};
+  $('definitionInput').onchange=e=>importDefinition(e.target.files[0]);
+  $('saveBtn').onclick=save; $('undoBtn').onclick=undo;$('redoBtn').onclick=redo;
+  $('selectBtn').onclick=()=>setTool('select');$('drawBtn').onclick=()=>setTool('draw');$('polygonBtn').onclick=()=>setTool('polygon');$('finishPolygonBtn').onclick=finishPolygon;
+  $('convertBtn').onclick=()=>{const r=state.regions[state.selected];if(!r||C.isPolygon(r))return;change(()=>{r.points=C.vertices(r);r.mode='preserve';state.selectedVertex=-1;});};
+  $('zoomInBtn').onclick=()=>zoom(1.3);$('zoomOutBtn').onclick=()=>zoom(1/1.3);$('fitBtn').onclick=fit;
+  for(const id of ['waterCheck','contourCheck'])$(id).onchange=()=>schedule(true,false);
+  for(const id of ['boundsCheck','riskCheck'])$(id).onchange=()=>drawCanvas();
+  $('demoBtn').onclick=()=>{const d=C.demo();state.map=d.map;state.regions=d.regions;state.selected=0;state.saved=signature(d.regions);state.past=[];state.future=[];prepareBaseGrid();updateMapHeader();fit();schedule(true,true);toast('Demo ready. Move the lakes or change their water levels.');};
+  $('helpBtn').onclick=()=>$('helpDialog').showModal();$('closeHelpBtn').onclick=()=>$('helpDialog').close();
+  $('helpDialog').addEventListener('click',e=>{if(e.target===$('helpDialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
+  function removeSelected(){if(state.selected<0)return;change(()=>{state.regions.splice(state.selected,1);state.selected=Math.min(state.selected,state.regions.length-1);state.selectedVertex=-1;});}
+  $('deleteBtn').onclick=removeSelected;
+  for(const [id,key] of [['heightInput','height'],['x0Input','x0'],['z0Input','z0'],['x1Input','x1'],['z1Input','z1']]) {
+    const input=$(id);
+    input.addEventListener('focus',()=>{formBefore=capture();});
+    input.addEventListener('input',()=>{
+      const r=state.regions[state.selected];if(!r||state.busy)return;
+      const text=input.value.trim().replace(',','.');r[key]=text!==''&&/^-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(text)?Number(text):NaN;
+      schedule(true,false);
+    });
+    input.addEventListener('change',()=>{if(formBefore){record(formBefore);formBefore=null;}schedule(true,false);});
+    input.addEventListener('blur',()=>{if(formBefore){record(formBefore);formBefore=null;}schedule(false,false);});
+  }
+  $('modeInput').onchange=e=>{if(state.selected<0)return;change(()=>{state.regions[state.selected].mode=e.target.value;});};
+  function stepHeight(delta){const r=state.regions[state.selected];if(!r)return;change(()=>{r.height=(Number.isFinite(r.height)?Math.round(r.height*1000):0)/1000+delta;});}
+  $('heightUpBtn').onclick=()=>stepHeight(.5);$('heightDownBtn').onclick=()=>stepHeight(-.5);
+  document.addEventListener('keydown',e=>{
+    if($('helpDialog').open)return;
+    const input=editing(e.target),mod=e.ctrlKey||e.metaKey;
+    if(e.key==='Escape'){if(state.drag)cancelDrag();else if(state.tool==='draw'||state.tool==='polygon')setTool('select');return;}
+    if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();if(document.activeElement?.blur)document.activeElement.blur();save();return;}
+    if(input)return;
+    if(state.tool==='polygon'&&!state.busy){if(e.key==='Enter'){e.preventDefault();finishPolygon();return;}if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();state.drawing.pop();schedule(false,false);return;}}
+    if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
+    if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
+    if(e.code==='Space'&&(e.target===canvas||e.target===document.body)){state.space=true;e.preventDefault();canvas.style.cursor='grab';return;}
+    if(state.busy||!state.map||state.drag)return;
+    if(e.key==='Delete'||e.key==='Backspace'){if(state.selected>=0){e.preventDefault();const r=state.regions[state.selected];if(C.isPolygon(r)&&state.selectedVertex>=0)removeVertex(state.selectedVertex);else removeSelected();}return;}
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&state.selected>=0){
+      const r=state.regions[state.selected];if(!C.validRect(r))return;e.preventDefault();const step=e.shiftKey?10:2;
+      let dx=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0,dz=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;
+      if(C.isPolygon(r)&&state.selectedVertex>=0){const v=r.points[state.selectedVertex];change(()=>{v.x=C.snap(v.x+dx,state.map.width);v.z=C.snap(v.z+dz,state.map.depth);C.updateBounds(r);});}
+      else{dx=C.clamp(dx,-r.x0,Math.floor(state.map.width/2)*2-r.x1);dz=C.clamp(dz,-r.z0,Math.floor(state.map.depth/2)*2-r.z1);
+        change(()=>{if(C.isPolygon(r)){r.points=r.points.map(p=>({x:p.x+dx,z:p.z+dz}));C.updateBounds(r);}else{r.x0+=dx;r.x1+=dx;r.z0+=dz;r.z1+=dz;}});}
+
+    }
+  });
+  document.addEventListener('keyup',e=>{if(e.code==='Space'){state.space=false;canvas.style.cursor=state.tool==='draw'||state.tool==='polygon'?'crosshair':'default';}});
+  window.addEventListener('blur',()=>{state.space=false;if(state.drag)cancelDrag();});
+  window.addEventListener('beforeunload',e=>{if(dirty()||state.map&&!state.map.demo&&state.drawing.length){e.preventDefault();e.returnValue='';}});
+  new ResizeObserver(()=>drawCanvas()).observe(wrap);
+  // Read-only diagnostics for verification; no file-writing or hidden network API.
+  window.RWEditor={getState:()=>({map:state.map?{name:state.map.name,width:state.map.width,depth:state.map.depth,sea:state.map.sea,demo:state.map.demo}:null,regions:state.regions.map(C.cloneRegion),selectedVertex:state.selectedVertex,drawing:state.drawing.map(p=>({...p})),selected:state.selected,errors:state.errors.map(e=>({...e})),warnings:state.warnings.map(w=>({...w})),dirty:!!dirty()})};
+  state.saved=signature([]);renderUI(true);drawCanvas();
+})();
+
+</script>
+</body>
+</html>

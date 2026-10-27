@@ -1157,8 +1157,9 @@ int CAiPathSpline::Update(Unit* const unit, const int updateMode)
       || motionType == RULEUMT_AmphibiousFloating
       || motionType == RULEUMT_Hover) {
       float surface = groundElevation;
-      if (map->mWaterEnabled && map->mWaterElevation > surface) {
-        surface = map->mWaterElevation;
+      const float localWater = map->GetWaterElevationAt(point.mPosition.x, point.mPosition.z);
+      if (map->mWaterEnabled && localWater > surface) {
+        surface = localWater;
       }
       point.mPosition.y = surface;
     } else {
@@ -1538,8 +1539,9 @@ void CAiPathSpline::Generate(
     if (motionType == RULEUMT_Water || motionType == RULEUMT_AmphibiousFloating || motionType == RULEUMT_Hover) {
       const float elevation = map->mHeightField->GetElevation(point.mPosition.x, point.mPosition.z);
       float surface = elevation;
-      if (map->mWaterEnabled != 0u && map->mWaterElevation > elevation) {
-        surface = map->mWaterElevation;
+      const float localWater = map->GetWaterElevationAt(point.mPosition.x, point.mPosition.z);
+      if (map->mWaterEnabled != 0u && localWater > elevation) {
+        surface = localWater;
       }
       point.mPosition.y = surface;
     } else {

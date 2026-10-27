@@ -5,6 +5,7 @@
 #include "legacy/exceptions/StdExcept.h"
 
 #include <algorithm>
+#include <atomic>
 #include <bit>
 #include <cmath>
 #include <cstring>
@@ -63,6 +64,7 @@
 #include "moho/sim/Sim.h"
 #include "moho/sim/SimDebugCommandRegistrations.h"
 #include "moho/sim/STIMap.h"
+#include "moho/sim/RegionalWater.h"
 #include "moho/math/Vector3f.h"
 #include "moho/math/Wm3Segment3FafExtras.h"
 #include "platform/Platform.h"
@@ -912,7 +914,6 @@ namespace
     int widthBucketCount = static_cast<int>((static_cast<std::uint32_t>(mapWidth - 1) >> 3) - 1u);
     int heightBucketCount = static_cast<int>((static_cast<std::uint32_t>(mapHeight - 1) >> 3) - 1u);
 
-    const float waterElevation = (map.mWaterEnabled != 0u) ? map.mWaterElevation : -10000.0f;
     constexpr float kHeightToWorldScale = 0.0078125f;
     constexpr float kSampleUnit = 1.0f;
 
@@ -939,6 +940,12 @@ namespace
       return static_cast<float>(heightValue) * kHeightToWorldScale;
     };
 
+    auto IsUnderwater = [&](const int x, const int z) -> bool {
+      const float waterElevation = (map.mWaterEnabled != 0u)
+        ? map.GetWaterElevationAt(static_cast<float>(ClampX(x)), static_cast<float>(ClampZ(z))) : -10000.0f;
+      return waterElevation > SampleElevation(x, z);
+    };
+
     float underwaterSampleCount = 0.0f;
     float totalSampleCount = 0.0f;
 
@@ -953,22 +960,22 @@ namespace
 
           int sampleZ = 24;
           while (zBlockLoopCount != 0) {
-            if (waterElevation > SampleElevation(sampleX, sampleZ - 16)) {
+            if (IsUnderwater(sampleX, sampleZ - 16)) {
               underwaterSampleCount += kSampleUnit;
             }
             totalSampleCount += kSampleUnit;
 
-            if (waterElevation > SampleElevation(sampleX, sampleZ - 8)) {
+            if (IsUnderwater(sampleX, sampleZ - 8)) {
               underwaterSampleCount += kSampleUnit;
             }
             totalSampleCount += kSampleUnit;
 
-            if (waterElevation > SampleElevation(sampleX, sampleZ)) {
+            if (IsUnderwater(sampleX, sampleZ)) {
               underwaterSampleCount += kSampleUnit;
             }
             totalSampleCount += kSampleUnit;
 
-            if (waterElevation > SampleElevation(sampleX, sampleZ + 8)) {
+            if (IsUnderwater(sampleX, sampleZ + 8)) {
               underwaterSampleCount += kSampleUnit;
             }
             totalSampleCount += kSampleUnit;
@@ -982,7 +989,7 @@ namespace
           int sampleZ = zBlockBase * 8;
           int zTailCount = heightBucketCount - zBlockBase;
           while (zTailCount != 0) {
-            if (waterElevation > SampleElevation(sampleX, sampleZ)) {
+            if (IsUnderwater(sampleX, sampleZ)) {
               underwaterSampleCount += kSampleUnit;
             }
             totalSampleCount += kSampleUnit;
@@ -4226,8 +4233,9 @@ int moho::cfunc_CAiBrainCreateResourceBuildingNearestL(LuaPlus::LuaState* const 
     const bool occupiesSeabed = (static_cast<std::uint8_t>(structureBlueprint->mFootprint.mOccupancyCaps) &
                                  static_cast<std::uint8_t>(EOccupancyCaps::OC_SEABED)) != 0u;
     if (!occupiesSeabed && mapData->mWaterEnabled) {
-      if (mapData->mWaterElevation > elevation) {
-        elevation = mapData->mWaterElevation;
+      const float waterElevation = mapData->GetWaterElevationAt(candidate.centerX, candidate.centerZ);
+      if (waterElevation > elevation) {
+        elevation = waterElevation;
       }
     }
 
@@ -5043,6 +5051,12 @@ int moho::cfunc_CAiBrainGetMapWaterRatioL(LuaPlus::LuaState* const state)
 
   const STIMap* const map = (brain != nullptr && brain->mSim != nullptr) ? brain->mSim->mMapData : nullptr;
   const float mapWaterRatio = (map != nullptr) ? CalculateMapWaterRatio(*map) : 0.0f;
+  if (map != nullptr && GetExperimentalWaterRegionsCached(map).Enabled()) {
+    static std::atomic<unsigned> reports{0};
+    if (reports.fetch_add(1, std::memory_order_relaxed) < 16u) {
+      gpg::Logf("[RegionalWaterAI v0.6.1] sampled water share=%g%%", static_cast<double>(mapWaterRatio * 100.0f));
+    }
+  }
   lua_pushnumber(rawState, mapWaterRatio);
   (void)lua_gettop(rawState);
   return 1;

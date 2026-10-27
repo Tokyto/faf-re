@@ -128,11 +128,11 @@ float IUnit::CalcSpawnElevation(
   }
 
   if ((layerMask & kLayerMaskWater) != 0u) {
-    return map->IsWaterEnabled() ? map->GetWaterElevation() : kNoWaterElevation;
+    return map->IsWaterEnabled() ? map->GetWaterElevationAt(transform.pos_.x, transform.pos_.z) : kNoWaterElevation;
   }
 
   if ((layerMask & kLayerMaskSub) != 0u) {
-    const float waterSurface = map->IsWaterEnabled() ? map->GetWaterElevation() : kNoWaterElevation;
+    const float waterSurface = map->IsWaterEnabled() ? map->GetWaterElevationAt(transform.pos_.x, transform.pos_.z) : kNoWaterElevation;
     return attributes.spawnElevationOffset + waterSurface;
   }
 

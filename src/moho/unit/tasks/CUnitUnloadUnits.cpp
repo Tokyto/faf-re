@@ -1,6 +1,7 @@
 #include "moho/unit/tasks/CUnitUnloadUnits.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <limits>
 #include <new>
@@ -10,6 +11,7 @@
 #include "gpg/core/containers/WriteArchive.h"
 #include "gpg/core/containers/Rect2.h"
 #include "gpg/core/reflection/Reflection.h"
+#include "gpg/core/utils/Logging.h"
 #include "moho/ai/IAiCommandDispatchImpl.h"
 #include "moho/ai/IAiNavigator.h"
 #include "moho/ai/IAiTransport.h"
@@ -21,6 +23,8 @@
 #include "moho/resource/blueprints/RUnitBlueprint.h"
 #include "moho/sim/CArmyImpl.h"
 #include "moho/sim/Sim.h"
+#include "moho/sim/STIMap.h"
+#include "moho/sim/RegionalWater.h"
 #include "moho/unit/CUnitCommand.h"
 #include "moho/unit/CUnitMotion.h"
 #include "moho/unit/core/Unit.h"
@@ -38,6 +42,30 @@ namespace
   constexpr std::uintptr_t kEntitySetInvalidEntry = 0x8u;
   constexpr std::int16_t kInvalidCellPosComponent = static_cast<std::int16_t>(0x8000);
   constexpr std::uint32_t kGroundTargetEntityIdTag = 0xF0000000u;
+
+  // Read-only, bounded diagnostics: leave native unload/cargo rules unchanged.
+  void LogRegionalWaterUnload(moho::Unit& unit, const moho::SNavGoal& goal, const char* const stage)
+  {
+    const moho::Sim* const sim = unit.SimulationRef;
+    const moho::STIMap* const map = sim != nullptr ? sim->mMapData : nullptr;
+    if (map == nullptr || !moho::GetExperimentalWaterRegionsCached(map).Enabled()) {
+      return;
+    }
+    static std::atomic<unsigned> reports{0};
+    if (reports.fetch_add(1, std::memory_order_relaxed) >= 64u) {
+      return;
+    }
+    const Wm3::Vector3f position = unit.GetPosition();
+    const Wm3::Vector3f target = unit.AiNavigator != nullptr ? unit.AiNavigator->GetCurrentTargetPos() : position;
+    const auto* const blueprint = unit.GetBlueprint();
+    gpg::Logf("[RegionalWaterTransport v0.6.1] tick=%u stage=%s unit=%s pos=%g,%g,%g goalCell=%d,%d navTarget=%g,%g,%g water=%g terrain=%g attached=%u",
+              static_cast<unsigned>(sim->mCurTick), stage,
+              blueprint != nullptr ? blueprint->mBlueprintId.c_str() : "unknown",
+              position.x, position.y, position.z, static_cast<int>(goal.minX), static_cast<int>(goal.minZ),
+              target.x, target.y, target.z, map->GetWaterElevationAt(target.x, target.z),
+              map->mHeightField->GetElevation(target.x, target.z),
+              static_cast<unsigned>(unit.GetAttachedEntities().size()));
+  }
 
   [[nodiscard]] moho::ETaskState NextTaskState(const moho::ETaskState state) noexcept
   {
@@ -284,6 +312,8 @@ namespace moho
           NewMoveTask(mUnloadGoal, this, 0, mOwnerCommandLinkLane.GetObjectPtr(), 0);
         }
 
+        LogRegionalWaterUnload(*mUnit, mUnloadGoal, "start");
+
         mTaskState = NextTaskState(mTaskState);
         return 0;
       }
@@ -312,6 +342,8 @@ namespace moho
             }
           }
         }
+
+        LogRegionalWaterUnload(*mUnit, mUnloadGoal, "detached");
 
         if (!mIsStagingPlatform && mUnit->mIsAir) {
           if (CUnitMotion* const motion = mUnit->UnitMotion; motion != nullptr) {

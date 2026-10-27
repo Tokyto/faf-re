@@ -4,6 +4,9 @@
 #include "moho/misc/StartupHelpers.h"
 #include "moho/terrain/water/HighFidelityWater.h"
 #include "moho/terrain/water/LowFidelityWater.h"
+#include "moho/sim/CWldMap.h"
+#include "moho/sim/STIMap.h"
+#include "moho/sim/RegionalWater.h"
 
 namespace moho
 {
@@ -52,6 +55,11 @@ namespace moho
     WaterSurface* result = nullptr;
     if (graphics_Fidelity < 0) {
       return nullptr;
+    }
+
+    if (graphics_Fidelity <= 2 && terrainResource->mMap->mWaterEnabled != 0u &&
+        GetExperimentalWaterRegions(terrainResource ? terrainResource->mMap : nullptr).Enabled()) {
+      return CreateExperimentalRegionalWater(terrainResource, graphics_Fidelity <= 1);
     }
 
     if (graphics_Fidelity <= 1) {

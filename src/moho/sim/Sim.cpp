@@ -1,4 +1,6 @@
 #include "Sim.h"
+#include "moho/sim/RegionalWater.h"
+#include "moho/sim/RegionalWaterBasinModel.h"
 #include "legacy/math/X87Math.h"
 #include "gpg/core/algorithms/MD5.h"
 #include "gpg/core/utils/Global.h"
@@ -21046,6 +21048,134 @@ int moho::cfunc_GetTerrainHeightL(LuaPlus::LuaState* const state)
  * What it does:
  * Publishes global `GetSurfaceHeight(x,z)` Lua binder.
  */
+namespace moho
+{
+  int cfunc_GetRegionalWaterInfo(lua_State* context)
+  {
+    LuaPlus::LuaState* const state = SCR_ResolveBindingState(context);
+    Sim* const sim = ResolveGlobalSim(context);
+    STIMap* const map = sim ? sim->mMapData : nullptr;
+    const auto regions = GetExperimentalWaterRegions(map);
+    if (!regions.Enabled() || !map || map->mWaterEnabled == 0u) {
+      lua_pushnil(context);
+      return 1;
+    }
+    const int nargs = lua_gettop(context);
+    double index = 1;
+    if (nargs == 1 && lua_type(context, 1) == LUA_TNUMBER) index = lua_tonumber(context, 1);
+    if (nargs > 1 || (nargs == 1 && lua_type(context, 1) != LUA_TNUMBER) ||
+        !std::isfinite(index) || index < 1 || index > static_cast<double>(regions.count) || index != std::floor(index)) {
+      LuaPlus::LuaState::Error(state, "GetRegionalWaterInfo([index]) needs an integer region index from 1 to the region count.");
+      return 0;
+    }
+    const auto& region = regions.values[static_cast<std::size_t>(index) - 1];
+    LuaPlus::LuaObject info;
+    info.AssignNewTable(state, 0, 0);
+    info.SetNumber("x0", region.bounds.x0);
+    info.SetNumber("z0", region.bounds.z0);
+    info.SetNumber("x1", region.bounds.x1);
+    info.SetNumber("z1", region.bounds.z1);
+    info.SetNumber("height", region.height);
+    info.SetNumber("baseHeight", map->mWaterElevation);
+    info.SetNumber("width", map->mHeightField->width - 1);
+    info.SetNumber("depth", map->mHeightField->height - 1);
+    info.SetNumber("basinApi", 2);
+    info.SetNumber("regionCount", regions.count);
+    info.SetNumber("regionIndex", index);
+    info.SetNumber("vertexCount", region.vertexCount);
+    info.PushStack(state);
+    return 1;
+  }
+
+  CScrLuaInitForm* func_GetRegionalWaterInfo_LuaFuncDef()
+  {
+    static CScrLuaBinder binder(SimLuaInitSet(), "GetRegionalWaterInfo", &cfunc_GetRegionalWaterInfo,
+      nullptr, "<global>", "GetRegionalWaterInfo([index]): immutable map water region, or nil when inactive.");
+    return &binder;
+  }
+
+  int cfunc_SculptRegionalWaterTestBasin(lua_State* context)
+  {
+    LuaPlus::LuaState* const state = SCR_ResolveBindingState(context);
+    Sim* const sim = ResolveGlobalSim(context);
+    STIMap* const map = sim ? sim->mMapData : nullptr;
+    const auto regions = GetExperimentalWaterRegions(map);
+    const auto region = regions.First();
+    CHeightField* const field = map ? map->mHeightField.get() : nullptr;
+    if (lua_gettop(context) != 0 || regions.count != 1 || region.vertexCount != 0 || !map || !field || !field->data ||
+        !sim->mOGrid || map->mWaterEnabled == 0u) {
+      LuaPlus::LuaState::Error(state, "SculptRegionalWaterTestBasin() needs exactly one active region and no arguments; multi-lake maps load their terrain automatically.");
+      return 0;
+    }
+    constexpr int margin = regionalwater::kBasinOuterMargin;
+    const gpg::Rect2i rect{static_cast<int>(region.bounds.x0) - margin,
+                          static_cast<int>(region.bounds.z0) - margin,
+                          static_cast<int>(region.bounds.x1) + margin,
+                          static_cast<int>(region.bounds.z1) + margin};
+    const float rim = std::max(region.height, map->mWaterElevation) + regionalwater::kBasinDryClearance;
+    // The recovered raw height setter has square-map assumptions. Keep this
+    // diagnostic on square maps rather than changing that native method here.
+    if (field->width != field->height || rect.x0 < 1 || rect.z0 < 1 ||
+        rect.x1 >= field->width - 1 || rect.z1 >= field->height - 1 ||
+        region.bounds.x1 - region.bounds.x0 < 128.0f || region.bounds.z1 - region.bounds.z0 < 128.0f ||
+        region.height < regionalwater::kBasinDepth || rim > 500.0f) {
+      LuaPlus::LuaState::Error(state, "Gentle basin needs a square map, a region at least 128x128, a 64-unit outer margin, and valid terrain heights.");
+      return 0;
+    }
+    const int rowSize = rect.x1 - rect.x0 + 1;
+    const int rows = rect.z1 - rect.z0 + 1;
+    const std::size_t samples = static_cast<std::size_t>(rowSize) * static_cast<std::size_t>(rows);
+    if (samples > 1024u * 1024u) {
+      LuaPlus::LuaState::Error(state, "Gentle basin diagnostic is limited to one million height samples.");
+      return 0;
+    }
+
+    // Refuse occupied terrain in the native binding too. No yield occurs
+    // between this guard and the edit. Props are retained, as in v0.1.
+    Wm3::Vector3f center{(rect.x0 + rect.x1) * 0.5f, 0.0f, (rect.z0 + rect.z1) * 0.5f};
+    Wm3::Vector3f extents{static_cast<float>(rowSize) * 0.5f, 32768.0f, static_cast<float>(rows) * 0.5f};
+    const VAxes3 axes{Wm3::Quaternionf(0.0f, 0.0f, 0.0f, 0.0f)};
+    const Wm3::Box3f queryBox{center, &axes.vX, &extents.x};
+    gpg::core::FastVectorN<CollisionResult, 10> hits{};
+    sim->mOGrid->CollectEntitiesInBox(hits, ENTITYTYPE_Unit, queryBox);
+    for (const CollisionResult& hit : hits) {
+      Unit* const unit = hit.sourceEntity ? hit.sourceEntity->IsUnit() : nullptr;
+      if (unit && !unit->IsDead() && !unit->DestroyQueued()) {
+        LuaPlus::LuaState::Error(state, "Gentle basin area contains units; no terrain was changed.");
+        return 0;
+      }
+    }
+
+    std::vector<std::uint16_t> heights(samples);
+    for (int z = rect.z0; z <= rect.z1; ++z) {
+      for (int x = rect.x0; x <= rect.x1; ++x) {
+        const float original = static_cast<float>(field->GetHeightAt(x, z)) / 128.0f;
+        const float height = regionalwater::BasinHeight(region, map->mWaterElevation,
+                                                       static_cast<float>(x), static_cast<float>(z), original);
+        heights[static_cast<std::size_t>(z - rect.z0) * rowSize + (x - rect.x0)] =
+          static_cast<std::uint16_t>(std::clamp(height * 128.0f, 0.0f, 65535.0f));
+      }
+    }
+    // Use the raw setter once, then queue the same sim/render dirty lanes
+    // as FlattenMapRect. Empty-area enforcement means no units need reseating.
+    field->SetElevationRectRaw(rect, heights.data(), rowSize);
+    const gpg::Rect2i dirty{rect.x0 - 1, rect.z0 - 1, rect.x1 + 1, rect.z1 + 1};
+    sim->mCachedMapRects.push_back(dirty);
+    sim->mLoadedMapRects.push_back(dirty);
+    gpg::Logf("[RegionalWaterBasin v0.2] gentle basin: samples=%u, rim=%g, floor=%g, outer margin=%d",
+              static_cast<unsigned>(samples), rim, region.height - regionalwater::kBasinDepth, margin);
+    lua_pushboolean(context, 1);
+    return 1;
+  }
+
+  CScrLuaInitForm* func_SculptRegionalWaterTestBasin_LuaFuncDef()
+  {
+    static CScrLuaBinder binder(SimLuaInitSet(), "SculptRegionalWaterTestBasin", &cfunc_SculptRegionalWaterTestBasin,
+      nullptr, "<global>", "Offline diagnostic: sculpt an empty-area basin with smooth banks inside the experimental water region.");
+    return &binder;
+  }
+}
+
 moho::CScrLuaInitForm* moho::func_GetSurfaceHeight_LuaFuncDef()
 {
   static CScrLuaBinder binder(
@@ -21106,8 +21236,8 @@ int moho::cfunc_GetSurfaceHeightL(LuaPlus::LuaState* const state)
   CHeightField* const field = map ? map->mHeightField.get() : nullptr;
 
   float surfaceHeight = field ? field->GetElevation(x, z) : 0.0f;
-  if (map && map->mWaterEnabled != 0u && map->mWaterElevation > surfaceHeight) {
-    surfaceHeight = map->mWaterElevation;
+  if (map && field) {
+    surfaceHeight = map->GetSurface(x, z);
   }
 
   lua_pushnumber(rawState, surfaceHeight);
@@ -27242,6 +27372,8 @@ namespace
       (void)::moho::func_GetMapSize_LuaFuncDef();
       (void)::moho::func_GetTerrainHeight_LuaFuncDef();
       (void)::moho::func_GetSurfaceHeight_LuaFuncDef();
+      (void)::moho::func_GetRegionalWaterInfo_LuaFuncDef();
+      (void)::moho::func_SculptRegionalWaterTestBasin_LuaFuncDef();
       (void)::moho::func_GetTerrainTypeOffset_LuaFuncDef();
       (void)::moho::func_GetTerrainType_LuaFuncDef();
       (void)::moho::func_SetTerrainType_LuaFuncDef();

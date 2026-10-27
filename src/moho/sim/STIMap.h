@@ -846,6 +846,8 @@ namespace moho
     [[nodiscard]] float GetElevation(std::int32_t x, std::int32_t z) const;
     [[nodiscard]] bool IsWaterEnabled() const noexcept;
     [[nodiscard]] float GetWaterElevation() const noexcept;
+    // Experimental local surface query. The original no-argument API stays global.
+    [[nodiscard]] float GetWaterElevationAt(float x, float z) const;
     /**
      * Address: 0x0089E5C0 (FUN_0089E5C0)
      *

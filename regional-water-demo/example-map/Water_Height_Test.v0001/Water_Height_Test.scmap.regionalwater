@@ -1,0 +1,9 @@
+# Regional Water Editor 0.2 | engine v0.6+ | offline
+# Water_Height_Test.scmap
+regionalwater 3
+polygon 66 7 90 420 108 426 182 372 200 310 172 320 128 342 88 400 terrain preserve
+polygon 66 7 314 188 342 130 406 86 428 102 420 120 380 170 330 198 terrain preserve
+polygon 47 6 250 420 346 382 396 324 404 244 324 268 222 380 terrain preserve
+polygon 47 6 94 256 130 164 190 114 278 114 266 184 138 290 terrain preserve
+polygon 37.5 7 444 0 402 322 350 388 172 450 44 512 512 512 512 0 terrain preserve
+polygon 37.5 8 122 168 166 124 192 110 316 100 422 0 0 0 0 512 62 344 terrain preserve

@@ -1,4 +1,5 @@
 #include "moho/terrain/water/Shoreline.h"
+#include "moho/sim/RegionalWater.h"
 
 #include <algorithm>
 #include <array>
@@ -720,6 +721,10 @@ namespace moho
   void Shoreline::Generate(IWldTerrainRes* const terrainResource)
   {
     Destroy();
+
+    // The legacy shoreline shader has one global elevation. Avoid incorrect
+    // beach foam until it is ported to the per-region rendering path.
+    if (GetExperimentalWaterRegions(terrainResource ? terrainResource->mMap : nullptr).Enabled()) return;
 
     EnsureNamedStat(sEngineStatShorelineTotalCellsStage1, "Shoreline_TotalCells");
     StoreStatCounter(sEngineStatShorelineTotalCellsStage1, 0);

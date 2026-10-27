@@ -4303,8 +4303,9 @@ namespace moho
     // Snap the requested point to the terrain (or water, when higher) surface.
     STIMap* const mapData = mSim->mMapData;
     float surfaceElevation = mapData->mHeightField->GetElevation(pos.x, pos.z);
-    if (mapData->mWaterEnabled && mapData->mWaterElevation > surfaceElevation) {
-      surfaceElevation = mapData->mWaterElevation;
+    const float waterElevation = mapData->GetWaterElevationAt(pos.x, pos.z);
+    if (mapData->mWaterEnabled && waterElevation > surfaceElevation) {
+      surfaceElevation = waterElevation;
     }
     pos.y = surfaceElevation;
 
@@ -4520,8 +4521,9 @@ namespace moho
     // Snap the requested point to the terrain (or water, when higher) surface.
     STIMap* const mapData = mSim->mMapData;
     float surfaceElevation = mapData->mHeightField->GetElevation(pos.x, pos.z);
-    if (mapData->mWaterEnabled && mapData->mWaterElevation > surfaceElevation) {
-      surfaceElevation = mapData->mWaterElevation;
+    const float waterElevation = mapData->GetWaterElevationAt(pos.x, pos.z);
+    if (mapData->mWaterEnabled && waterElevation > surfaceElevation) {
+      surfaceElevation = waterElevation;
     }
     pos.y = surfaceElevation;
 
@@ -4655,8 +4657,9 @@ namespace moho
     // Snap the requested point to the terrain (or water, when higher) surface.
     STIMap* const mapData = mSim->mMapData;
     float surfaceElevation = mapData->mHeightField->GetElevation(targetPos.x, targetPos.z);
-    if (mapData->mWaterEnabled && mapData->mWaterElevation > surfaceElevation) {
-      surfaceElevation = mapData->mWaterElevation;
+    const float waterElevation = mapData->GetWaterElevationAt(targetPos.x, targetPos.z);
+    if (mapData->mWaterEnabled && waterElevation > surfaceElevation) {
+      surfaceElevation = waterElevation;
     }
     targetPos.y = surfaceElevation;
 
@@ -4869,8 +4872,9 @@ namespace moho
     // Snap the requested point to the terrain (or water, when higher) surface.
     STIMap* const mapData = mSim->mMapData;
     float surfaceElevation = mapData->mHeightField->GetElevation(pos.x, pos.z);
-    if (mapData->mWaterEnabled && mapData->mWaterElevation > surfaceElevation) {
-      surfaceElevation = mapData->mWaterElevation;
+    const float waterElevation = mapData->GetWaterElevationAt(pos.x, pos.z);
+    if (mapData->mWaterEnabled && waterElevation > surfaceElevation) {
+      surfaceElevation = waterElevation;
     }
     pos.y = surfaceElevation;
 
@@ -5177,8 +5181,9 @@ namespace moho
     // Snap the requested point to the terrain (or water, when higher) surface.
     STIMap* const mapData = mSim->mMapData;
     float surfaceElevation = mapData->mHeightField->GetElevation(target.x, target.z);
-    if (mapData->mWaterEnabled && mapData->mWaterElevation > surfaceElevation) {
-      surfaceElevation = mapData->mWaterElevation;
+    const float waterElevation = mapData->GetWaterElevationAt(target.x, target.z);
+    if (mapData->mWaterEnabled && waterElevation > surfaceElevation) {
+      surfaceElevation = waterElevation;
     }
     target.y = surfaceElevation;
 

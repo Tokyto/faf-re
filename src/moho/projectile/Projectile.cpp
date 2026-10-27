@@ -1,5 +1,6 @@
 #include "moho/projectile/Projectile.h"
 
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include "gpg/core/containers/WriteArchive.h"
 #include "gpg/core/reflection/Reflection.h"
 #include "gpg/core/utils/Global.h"
+#include "gpg/core/utils/Logging.h"
 #include "legacy/exceptions/StdExcept.h"
 #include "moho/entity/EntityDb.h"
 #include "moho/entity/EntityId.h"
@@ -39,6 +41,8 @@
 #include "moho/sim/FafGameVersion.h"
 #include "moho/sim/SPhysConstants.h"
 #include "moho/sim/STIMap.h"
+#include "moho/sim/RegionalWater.h"
+#include "moho/sim/RegionalWaterCombatModel.h"
 #include "moho/sim/Sim.h"
 #include "moho/task/CTask.h"
 #include "moho/task/CTaskThread.h"
@@ -623,7 +627,7 @@ namespace moho
       // Initial layer selection from map water level vs launch height (pos.y).
       const float currentHeight = launchTransform.pos_.y;
       STIMap* const mapData = SimulationRef->mMapData;
-      const float waterElevation = mapData->mWaterEnabled ? mapData->mWaterElevation : -10000.0f;
+      const float waterElevation = mapData->GetWaterElevationAt(launchTransform.pos_.x, launchTransform.pos_.z);
       const ELayer previousLayer = mVarDat.mLayerMask;
 
       // 0x0069BC49: `comiss water, posY; jbe` -> Air, so an unordered (NaN)
@@ -646,6 +650,15 @@ namespace moho
       }
 
       this->SetMesh(blueprint->Display.MeshBlueprint, nullptr, true);
+
+      if (mStayUnderwater && GetExperimentalWaterRegions(mapData).Enabled()) {
+        static std::atomic<unsigned> reports{0};
+        if (reports.fetch_add(1, std::memory_order_relaxed) < 8u) {
+          gpg::Logf("[RegionalWaterCombat v0.3] underwater spawn at %g,%g,%g; local water=%g, below=%d",
+                    launchTransform.pos_.x, currentHeight, launchTransform.pos_.z, waterElevation,
+                    static_cast<int>(mBelowWater));
+        }
+      }
 
       if (mBelowWater && mDestroyOnWater) {
         this->Destroy();
@@ -950,7 +963,7 @@ namespace moho
     // Underwater clamp: keep the projectile just below the surface.
     if (mStayUnderwater && mBelowWater) {
       STIMap* const mapData = SimulationRef->mMapData;
-      const float waterElevation = mapData->mWaterEnabled ? mapData->mWaterElevation : -10000.0f;
+      const float waterElevation = mapData->GetWaterElevationAt(tran.pos_.x, tran.pos_.z);
       const float clampY = waterElevation - 0.0099999998f;
       // 0x0069C4E2: `comiss clampY, posY; ja skip` -- an unordered (NaN)
       // compare also clamps.
@@ -1228,7 +1241,7 @@ namespace moho
 
     // Underwater aim clamp: keep the aim point just below the surface.
     if (mStayUnderwater) {
-      const float waterElevation = mapData->mWaterEnabled ? mapData->mWaterElevation : -10000.0f;
+      const float waterElevation = mapData->GetWaterElevationAt(aim.x, aim.z);
       const float clampY = waterElevation - 0.25f;
       // 0x0069CB7B: `comiss clampY, aim.y; ja skip` -- NaN also clamps.
       if (!(clampY > aim.y)) {
@@ -1316,7 +1329,7 @@ namespace moho
           jitteredY = groundClampedBase;
         }
         if (!mStayUnderwater) {
-          const float waterLine = mapData->mWaterEnabled ? mapData->mWaterElevation : -10000.0f;
+          const float waterLine = mapData->GetWaterElevationAt(jitteredX, jitteredZ);
           const float waterLimit = waterLine + 0.5f;
           const float waterClampedBase = (baseY > waterLimit) ? waterLimit : baseY;
           if (jitteredY < waterClampedBase) {
@@ -1350,7 +1363,7 @@ namespace moho
 
       // Only flatten while pointing upward (asm 0x0069CFFB-0x0069D01D: forward.y > 0).
       if (forwardY > 0.0f) {
-        const float waterLine = mapData->mWaterEnabled ? mapData->mWaterElevation : -10000.0f;
+        const float waterLine = mapData->GetWaterElevationAt(trn.pos_.x, trn.pos_.z);
         const float t = (waterLine - trn.pos_.y) / forwardY;
         // Only when the surface is reached within one forward unit (asm 0x0069D047: t < 1.0).
         if (t < 1.0f) {
@@ -1427,6 +1440,8 @@ namespace moho
     const float distMoved = segment.Extent * 2.0f;
 
     STIMap* const mapData = SimulationRef->mMapData;
+    const auto waterRegions = GetExperimentalWaterRegions(mapData);
+    const bool regionalWater = waterRegions.Enabled();
     float waterElevation = -10000.0f;
 
     // --- Surface pass: water crossing, terrain hit, then the layer change ---
@@ -1448,7 +1463,23 @@ namespace moho
       // misses, and is what a terrain hit must beat to cancel the layer change.
       float waterCrossingDistance = 0.0f;
 
-      if (mapData->mWaterEnabled) {
+      if (regionalWater && mapData->mWaterEnabled) {
+        waterElevation = mapData->GetWaterElevationAt(nextPos.x, nextPos.z);
+        const auto* const field = mapData->mHeightField.get();
+        const auto waterHit = regionalwater::FindWaterCrossing(
+          waterRegions, mapData->mWaterElevation,
+          static_cast<float>(field->width - 1), static_cast<float>(field->height - 1),
+          {curPos.x, curPos.y, curPos.z}, {nextPos.x, nextPos.y, nextPos.z}, mBelowWater);
+        if (waterHit.kind != regionalwater::WaterCrossingKind::None) {
+          crossing = waterHit.kind == regionalwater::WaterCrossingKind::Enter ? EWaterCrossing::Enter : EWaterCrossing::Exit;
+          waterCrossingDistance = waterHit.fraction * distMoved;
+          if (mDestroyOnWater) {
+            mImpactPosition = Wm3::Vector3f{waterHit.position.x, waterHit.position.y, waterHit.position.z};
+            mImpactInterpolation = waterHit.fraction;
+            mImpactType = IMPACT_Water;
+          }
+        }
+      } else if (mapData->mWaterEnabled) {
         waterElevation = mapData->mWaterElevation;
         if (mBelowWater) {
           if (nextPos.y > waterElevation) {
@@ -1459,7 +1490,7 @@ namespace moho
         }
       }
 
-      if (crossing != EWaterCrossing::None) {
+      if (!regionalWater && crossing != EWaterCrossing::None) {
         // 0x0069D2E2..0x0069D3FB: an unbounded line from curPos along the
         // normalized step against the y == waterElevation plane.
         Wm3::Vector3f stepDirection{};
@@ -1507,9 +1538,13 @@ namespace moho
 
       bool terrainBeforeWater = false;
       if (IsValidVector3f(Wm3::Vector3f{hitPoint.x, hitPoint.y, hitPoint.z})) {
+        if (regionalWater && crossing != EWaterCrossing::None) {
+          terrainBeforeWater = terrainHit.distance <= waterCrossingDistance;
+        }
         // 0x0069D5BF..0x0069D5E2: record when there is no hit yet or this one
         // is closer than the stored one.
-        if (mImpactInterpolation < 0.0f || (mImpactInterpolation * distMoved) > terrainHit.distance) {
+        if (mImpactInterpolation < 0.0f || (mImpactInterpolation * distMoved) > terrainHit.distance ||
+            (regionalWater && terrainBeforeWater && crossing != EWaterCrossing::None && mImpactType == IMPACT_Water)) {
           mImpactInterpolation = terrainHit.distance / distMoved;
           mImpactPosition = Wm3::Vector3f{hitPoint.x, hitPoint.y, hitPoint.z};
           mImpactType = IMPACT_Terrain;
@@ -1522,6 +1557,19 @@ namespace moho
       // 0x0069DB59..0x0069DBA2: the layer change runs last, and not at all when
       // the projectile struck the ground before reaching the water.
       if (crossing != EWaterCrossing::None && !terrainBeforeWater) {
+        if (regionalWater) {
+          static std::atomic<unsigned> reports{0};
+          if (reports.fetch_add(1, std::memory_order_relaxed) < 24u) {
+            const float t = distMoved > 0 ? waterCrossingDistance / distMoved : 0;
+            gpg::Logf("[RegionalWaterCombat v0.6.1] tick=%u projectile=%s %s at %g,%g,%g; destroyOnWater=%d",
+                      static_cast<unsigned>(SimulationRef->mCurTick),
+                      mAttributes.mBlueprint != nullptr ? mAttributes.mBlueprint->mBlueprintId.c_str() : "unknown",
+                      crossing == EWaterCrossing::Enter ? "enter" : "exit",
+                      curPos.x + (nextPos.x - curPos.x) * t,
+                      curPos.y + (nextPos.y - curPos.y) * t,
+                      curPos.z + (nextPos.z - curPos.z) * t, static_cast<int>(mDestroyOnWater));
+          }
+        }
         if (crossing == EWaterCrossing::Enter) {
           this->SetCurrentLayer(LAYER_Water);
           mBelowWater = true;
@@ -1733,6 +1781,7 @@ namespace moho
 
       // Effective surface = max(terrain, water) (asm 0x0069DD0E-0x0069DD20).
       const float surfaceY = (waterElevation > groundElevation) ? waterElevation : groundElevation;
+      const float detonationSurfaceY = regionalWater ? surfaceY : groundElevation;
       const float heightAboveSurface = nextPos.y - surfaceY;
 
       // Resolve detonate distances with the -1 sentinel -> blueprint fallback
@@ -1751,14 +1800,15 @@ namespace moho
       float fraction = 0.0f;
 
       // Below band (asm 0x0069DD66-0x0069DDA3): active while descending and within
-      // detonateBelow of the surface. Crossing fraction solved against ground.
+      // detonateBelow of the surface. Baseline solves against ground; the
+      // regional prototype solves against the same local surface as its band.
       if (detonateBelow > 0.0f && detonateBelow > heightAboveSurface && dy < 0.0f) {
-        fraction = (detonateBelow + groundElevation - curPos.y) / dy;
+        fraction = (detonateBelow + detonationSurfaceY - curPos.y) / dy;
         detonated = true;
       } else if (detonateAbove > 0.0f && heightAboveSurface > detonateAbove && dy > 0.0f) {
         // Above band (asm 0x0069DDAB-0x0069DDEC): active while ascending once the
         // projectile has risen past detonateAbove of the surface.
-        fraction = (detonateAbove + groundElevation - curPos.y) / dy;
+        fraction = (detonateAbove + detonationSurfaceY - curPos.y) / dy;
         detonated = true;
       }
 
@@ -1771,6 +1821,9 @@ namespace moho
         fraction = (1.0f > fraction) ? fraction : 1.0f;
         if (fraction < kProjectileTickSeconds) {
           fraction = kProjectileTickSeconds;
+        }
+        if (regionalWater && mImpactInterpolation >= 0.0f && mImpactInterpolation <= fraction) {
+          return; // Keep an earlier water/terrain/entity collision.
         }
         mImpactInterpolation = fraction;
         mImpactPosition = Wm3::Vector3f{

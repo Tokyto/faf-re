@@ -46,6 +46,8 @@
 #include "moho/sim/CBackgroundTaskControl.h"
 #include "moho/sim/CWldSession.h"
 #include "moho/sim/STIMap.h"
+#include "moho/sim/RegionalWater.h"
+#include "moho/sim/RegionalWaterRenderModel.h"
 #include "moho/sim/UserArmy.h"
 #include "moho/sim/WldSessionInfo.h"
 #include "moho/terrain/StratumMaterial.h"
@@ -557,6 +559,14 @@ namespace
     const std::int32_t maxZ = field->height - 1;
     const std::int32_t maxX = field->width - 1;
 
+    const bool regionalWater = moho::GetExperimentalWaterRegions(map).Enabled();
+    if (regionalWater) {
+      // UpdateWaterMap is also used outside the map editor by this experiment.
+      // Its scratch buffer was previously allocated only by EnterEditMode.
+      const auto wordCount = static_cast<std::size_t>(maxX >> 1) * static_cast<std::size_t>(maxZ >> 1);
+      EnsureTerrainEditWordCount(terrainRes.mEditWordBuffer, wordCount, 0u);
+    }
+
     std::int32_t x0 = updateRect.x0;
     std::int32_t z0 = updateRect.z0;
     std::int32_t x1 = updateRect.x1;
@@ -575,7 +585,7 @@ namespace
       z1 = maxZ;
     }
 
-    const float waterElevation = map->mWaterEnabled != 0u ? map->mWaterElevation : kNoWaterElevation;
+    const float baseWaterElevation = map->mWaterEnabled != 0u ? map->mWaterElevation : kNoWaterElevation;
     const float waterAbyssElevation = map->mWaterEnabled != 0u ? map->mWaterElevationAbyss : kNoWaterElevation;
 
     const std::int32_t halfX0 = x0 >> 1;
@@ -593,15 +603,25 @@ namespace
         }
 
         const std::int32_t worldZ = halfZ * 2;
-        const float depthDenominator = waterElevation - waterAbyssElevation;
+        const float depthDenominator = baseWaterElevation - waterAbyssElevation;
         std::uint32_t pixelIndex = static_cast<std::uint32_t>(halfX0) + static_cast<std::uint32_t>(halfZ) * halfMapWidth;
         std::int32_t worldX = halfX0 * 2;
 
         for (std::int32_t halfX = halfX0; halfX < halfX1; ++halfX) {
+          const float waterElevation = map->GetWaterElevationAt(static_cast<float>(worldX + 1), static_cast<float>(worldZ + 1));
           const float h00 = SampleTerrainHeightWordScaled(*field, worldX, worldZ);
           const float h10 = SampleTerrainHeightWordScaled(*field, worldX + 2, worldZ);
           const float h01 = SampleTerrainHeightWordScaled(*field, worldX, worldZ + 2);
           const float h11 = SampleTerrainHeightWordScaled(*field, worldX + 2, worldZ + 2);
+
+          if (regionalWater) {
+            terrainRes.mEditWordBuffer.begin[pixelIndex] = moho::regionalwater::WaterMaskPixel(
+              waterElevation, depthDenominator, {h00, h10, h01, h11},
+              terrainRes.mWaterFoam[pixelIndex], terrainRes.mWaterFlatness[pixelIndex]);
+            ++pixelIndex;
+            worldX += 2;
+            continue;
+          }
 
           std::uint32_t packedSample = 0;
           packedSample |= static_cast<std::uint32_t>(terrainRes.mWaterFoam[pixelIndex]) << 24u;
@@ -2520,7 +2540,10 @@ namespace moho
 
     CloneStratumMaskForEdit(mStrata.mStratumMask0, true);
     CloneStratumMaskForEdit(mStrata.mStratumMask1, true);
-    CloneTerrainDynamicTextureForEdit(mWaterMapTexture, true);
+    // The experimental mask is edited again after live terrain deformation.
+    // Keep its single-level sheet: uploading only level 0 of an archived
+    // mipmapped mask otherwise leaves the old dry mask visible at a distance.
+    CloneTerrainDynamicTextureForEdit(mWaterMapTexture, !GetExperimentalWaterRegions(mMap).Enabled());
   }
 
   /**
@@ -2763,6 +2786,17 @@ namespace moho
 
     if (syncedAnyRect) {
       field->UpdateError(syncedBounds);
+      if (GetExperimentalWaterRegions(mMap).Enabled()) {
+        // FlattenMapRect changes the sim heightfield first. Only rebuild here,
+        // after the visible render heightfield has received those changes.
+        // This prototype uploads a full mask only on a terrain change.
+        UpdateWaterMap();
+        static int reportBudget = 0;
+        if (reportBudget++ < 8) {
+          gpg::Logf("[RegionalWaterRender v0.1.1] depth mask refreshed after terrain sync [%d,%d]-[%d,%d]",
+                    syncedBounds.x0, syncedBounds.z0, syncedBounds.x1, syncedBounds.z1);
+        }
+      }
     }
   }
 
@@ -4163,6 +4197,13 @@ namespace moho
     delete previousTerrainRes;
     if (mTerrainRes == nullptr || !mTerrainRes->Load(reader, state, loadControl)) {
       return false;
+    }
+
+    bool regionalTerrainChanged = false;
+    if (!LoadExperimentalWaterMap(mTerrainRes->mMap, mapName, &regionalTerrainChanged)) return false;
+    if (regionalTerrainChanged) {
+      const auto* const field = mTerrainRes->mMap->mHeightField.get();
+      mTerrainRes->UpdateNormalMap({0, 0, field->width - 1, field->height - 1});
     }
 
     TickLoadingProgress(loadControl);

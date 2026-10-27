@@ -2329,7 +2329,7 @@ namespace moho
     }
 
     const STIMap* const mapData = SimulationRef->mMapData;
-    const float waterElevation = mapData->IsWaterEnabled() ? mapData->GetWaterElevation() : -10000.0f;
+    const float waterElevation = mapData->IsWaterEnabled() ? mapData->GetWaterElevationAt(worldPos.x, worldPos.z) : -10000.0f;
     // 0x0062AEE8: `CHeightField::GetElevation(x, z)` (0x0044FB90) on the map's
     // height field.
     const float terrainElevation = mapData->GetHeightField()->GetElevation(worldPos.x, worldPos.z);
@@ -8111,7 +8111,8 @@ namespace moho
       return terrainElevation;
     }
 
-    return (map->mWaterElevation > terrainElevation) ? map->mWaterElevation : terrainElevation;
+    const float localWater = map->GetWaterElevationAt(x, z);
+    return (localWater > terrainElevation) ? localWater : terrainElevation;
   }
 
   /**
@@ -8135,7 +8136,8 @@ namespace moho
     if ((static_cast<std::int32_t>(layer) & static_cast<std::int32_t>(LAYER_Seabed)) != 0 || map->mWaterEnabled == 0u) {
       outPos.y = terrainElevation;
     } else {
-      outPos.y = (map->mWaterElevation > terrainElevation) ? map->mWaterElevation : terrainElevation;
+      const float localWater = map->GetWaterElevationAt(worldX, worldZ);
+      outPos.y = (localWater > terrainElevation) ? localWater : terrainElevation;
     }
 
     return outPos;
@@ -8176,10 +8178,11 @@ namespace moho
     const float terrainElevation = field->GetElevation(worldPos.x, worldPos.z);
     const bool seabedOnly =
       (static_cast<std::uint8_t>(footprint.mOccupancyCaps) & static_cast<std::uint8_t>(LAYER_Seabed)) != 0u;
-    if (seabedOnly || map->mWaterEnabled == 0u || map->mWaterElevation <= terrainElevation) {
+    const float localWater = map->GetWaterElevationAt(worldPos.x, worldPos.z);
+    if (seabedOnly || map->mWaterEnabled == 0u || localWater <= terrainElevation) {
       outPos.y = terrainElevation;
     } else {
-      outPos.y = map->mWaterElevation;
+      outPos.y = localWater;
     }
 
     return outPos;
